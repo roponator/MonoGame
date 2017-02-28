@@ -74,6 +74,8 @@ namespace Microsoft.Xna.Framework
 
         protected internal override void SetSupportedOrientations(DisplayOrientation orientations)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetSupportedOrientations 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -103,6 +105,8 @@ namespace Microsoft.Xna.Framework
                 DisplayInformation.AutoRotationPreferences = supported;
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetSupportedOrientations end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         #endregion
@@ -144,6 +148,8 @@ namespace Microsoft.Xna.Framework
 
         private void Window_FocusChanged(CoreWindow sender, WindowActivatedEventArgs args)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Window_FocusChanged 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -153,10 +159,14 @@ namespace Microsoft.Xna.Framework
                     Platform.IsActive = true;
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Window_FocusChanged end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         private void Window_Closed(CoreWindow sender, CoreWindowEventArgs args)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Window_Closed 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -164,10 +174,14 @@ namespace Microsoft.Xna.Framework
                 Game.Platform.Exit();
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Window_Closed end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         private void SetViewBounds(double width, double height)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetViewBounds 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -176,10 +190,14 @@ namespace Microsoft.Xna.Framework
                 _viewBounds = new Rectangle(0, 0, pixelWidth, pixelHeight);
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetViewBounds end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         private void SwapChain_SizeChanged(object sender, SizeChangedEventArgs args)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SwapChain_SizeChanged 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -204,6 +222,8 @@ namespace Microsoft.Xna.Framework
             }
 
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SwapChain_SizeChanged end", SaladFuzzTester.LogChannel.Game);
+
 
         }
 
@@ -219,6 +239,7 @@ namespace Microsoft.Xna.Framework
                 _windowKeyEventsToPlayback.Enqueue(e);
             }
             _disableGameTicking = false;
+
         }
 
         private static DisplayOrientation ToOrientation(DisplayOrientations orientations)
@@ -253,6 +274,8 @@ namespace Microsoft.Xna.Framework
 
         internal void SetClientSize(int width, int height)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetClientSize 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -278,10 +301,14 @@ namespace Microsoft.Xna.Framework
                 }
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetClientSize end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         private void DisplayProperties_OrientationChanged(DisplayInformation dinfo, object sender)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("DisplayProperties_OrientationChanged 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -297,21 +324,28 @@ namespace Microsoft.Xna.Framework
             }
 
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("DisplayProperties_OrientationChanged end", SaladFuzzTester.LogChannel.Game);
 
         }
 
         protected override void SetTitle(string title)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetTitle 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
                 Debug.WriteLine("WARNING: GameWindow.Title has no effect under UWP.");
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetTitle end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         internal void SetCursor(bool visible)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetCursor 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
@@ -327,6 +361,8 @@ namespace Microsoft.Xna.Framework
                     _coreWindow.PointerCursor = null;
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("SetCursor end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         internal void RunLoop()
@@ -357,33 +393,55 @@ namespace Microsoft.Xna.Framework
 
         internal void Tick()
         {
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 1;
+
             // Must return before lock happens
             if (_disableGameTicking == true)
             {
                 return;
             }
 
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 2;
+
+
             // Should be outside lock
             _windowEvents.CopyKeyStateToGameThread();
 
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 3;
+
             lock (_gameAndUiThreadLock)
             {
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 4;
+
                 // Playback keys that the window recieved on the game thread
                 lock (_windowKeyEventsToPlayback)
                 {
+                    SaladFuzzTester.FuzzTesterHelpers.gamePos = 5;
+
                     while (_windowKeyEventsToPlayback.Count > 0)
                     {
                         KeyEvent e = _windowKeyEventsToPlayback.Dequeue();
                         OnTextInput(e.sender, new TextInputEventArgs((char)e.args.KeyCode));
                     }
+
+                    SaladFuzzTester.FuzzTesterHelpers.gamePos = 61;
+
                 }
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 7;
+
 
                 // Update state based on window events.  
                 _windowEvents.UpdateKeyboardState();
 
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 8;
+
+
                 // Update and render the game.
                 if (Game != null)
                     Game.Tick();
+
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 9;
+
 
             }
         }
@@ -392,32 +450,45 @@ namespace Microsoft.Xna.Framework
 
         public void Dispose()
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Dispose 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
                 //window.Dispose();
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("Dispose end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         public override void BeginScreenDeviceChange(bool willBeFullScreen)
         {
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("BeginScreenDeviceChange 1", SaladFuzzTester.LogChannel.Game);
+
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
                 // PUT ANY UI/GAME DEPENDANT CODE IN HERE, MUST BE LOCKED BECAUSE OF MULTITHREADING!
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("BeginScreenDeviceChange end", SaladFuzzTester.LogChannel.Game);
+
         }
 
         public override void EndScreenDeviceChange(string screenDeviceName, int clientWidth, int clientHeight)
         {
+        
+                SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("EndScreenDeviceChange 1",SaladFuzzTester.LogChannel.Game);
+           
             _disableGameTicking = true;
             lock (_gameAndUiThreadLock)
             {
                 // PUT ANY UI/GAME DEPENDANT CODE IN HERE, MUST BE LOCKED BECAUSE OF MULTITHREADING!
             }
             _disableGameTicking = false;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("EndScreenDeviceChange end", SaladFuzzTester.LogChannel.Game);
+
         }
         #endregion
 

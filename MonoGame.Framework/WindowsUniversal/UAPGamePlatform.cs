@@ -190,12 +190,30 @@ namespace Microsoft.Xna.Framework
 
         internal override void OnPresentationChanged()
         {
-            var presentationParameters = Game.GraphicsDevice.PresentationParameters;
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = -100;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("OnPresentationChanged 1",SaladFuzzTester.LogChannel.Game);
+           var presentationParameters = Game.GraphicsDevice.PresentationParameters;
+
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = -102;
 
             if (presentationParameters.IsFullScreen)
+            {
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = -103;
+
                 EnterFullScreen();
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = -104;
+
+            }
             else
+            {
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = -105;
+
                 ExitFullScreen();
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = -106;
+
+            }
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = -107;
+            SaladFuzzTester.FuzzTesterHelpers.logToFileBlocking("OnPresentationChanged end", SaladFuzzTester.LogChannel.Game);
         }
 
         public override void EndScreenDeviceChange(string screenDeviceName, int clientWidth, int clientHeight)

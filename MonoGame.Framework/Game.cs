@@ -449,6 +449,9 @@ namespace Microsoft.Xna.Framework
                 goto RetryTick;
             }
 
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 81;
+
+
             // Do not allow any update to take longer than our maximum.
             if (_accumulatedElapsedTime > _maxElapsedTime)
                 _accumulatedElapsedTime = _maxElapsedTime;
@@ -498,7 +501,12 @@ namespace Microsoft.Xna.Framework
                 _gameTime.TotalGameTime += _accumulatedElapsedTime;
                 _accumulatedElapsedTime = TimeSpan.Zero;
 
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 82;
+
                 DoUpdate(_gameTime);
+
+                SaladFuzzTester.FuzzTesterHelpers.gamePos =83;
+
             }
 
             // Draw unless the update suppressed it.
@@ -506,11 +514,21 @@ namespace Microsoft.Xna.Framework
                 _suppressDraw = false;
             else
             {
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 84;
+
                 DoDraw(_gameTime);
+
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 85;
+
             }
+
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 86;
 
             if (_shouldExit)
                 Platform.Exit();
+
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 87;
+
         }
 
         #endregion
@@ -665,14 +683,27 @@ namespace Microsoft.Xna.Framework
 
         internal void DoDraw(GameTime gameTime)
         {
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 841;
+
             AssertNotDisposed();
+
+            SaladFuzzTester.FuzzTesterHelpers.gamePos = 842;
+
             // Draw and EndDraw should not be called if BeginDraw returns false.
             // http://stackoverflow.com/questions/4054936/manual-control-over-when-to-redraw-the-screen/4057180#4057180
             // http://stackoverflow.com/questions/4235439/xna-3-1-to-4-0-requires-constant-redraw-or-will-display-a-purple-screen
             if (Platform.BeforeDraw(gameTime) && BeginDraw())
             {
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 843;
+
                 Draw(gameTime);
+
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 844;
+
                 EndDraw();
+
+                SaladFuzzTester.FuzzTesterHelpers.gamePos = 845;
+
             }
         }
 
