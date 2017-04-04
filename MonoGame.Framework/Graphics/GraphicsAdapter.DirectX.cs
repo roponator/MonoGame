@@ -24,8 +24,9 @@ namespace Microsoft.Xna.Framework.Graphics
         private static void PlatformInitializeAdapters11_Vanilla(out ReadOnlyCollection<GraphicsAdapter> adapters)
         {
             const string NAME = "PlatformInitializeAdapters11_Vanilla";
-
-            Factory2 factory = new SharpDX.DXGI.Factory2();
+            // TODO ROPO: COULD SEND HIM A DEBUG FACTORY BUILD, NOT SURE IF HE CAN RUN IT, AS IF YOU NEED SOME SPECIAL DEBUG SDK LAYER...
+            bool debugFactory = false;
+            Factory2 factory = new SharpDX.DXGI.Factory2(debugFactory);
 
             logToFileBlocking("GraphicsAdapter::"+ NAME+" 1: factory: " + (factory != null));
 

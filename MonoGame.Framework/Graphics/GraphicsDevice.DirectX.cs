@@ -380,7 +380,7 @@ namespace Microsoft.Xna.Framework.Graphics
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8 " + _d3dContext.GetType().Name);
 
             // Create the Direct2D device.
-            using (var dxgiDevice = _d3dDevice.QueryInterface<SharpDX.DXGI.Device>())
+            using (var dxgiDevice = _d3dDevice.QueryInterface<SharpDX.DXGI.Device3>())
             {
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8_1 " + dxgiDevice.GetType().Name);
 
@@ -532,7 +532,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 // TODO
                 // First, retrieve the underlying DXGI Device from the D3D Device.
                 // Creates the swap chain 
-                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device2>())
+                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device3>())
                 using (var dxgiAdapter = dxgiDevice2.Adapter)
                 using (var dxgiFactory2 = dxgiAdapter.GetParent<SharpDX.DXGI.Factory2>())
                 {
