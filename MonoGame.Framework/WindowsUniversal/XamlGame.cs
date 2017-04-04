@@ -27,6 +27,8 @@ namespace MonoGame.Framework
         /// <returns></returns>
         static public T Create(string launchParameters, CoreWindow window, SwapChainPanel swapChainPanel)
         {
+             Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create 1");
+
             if (launchParameters == null)
                 throw new NullReferenceException("The launch parameters cannot be null!");
             if (window == null)
@@ -36,20 +38,25 @@ namespace MonoGame.Framework
 
             // Save any launch parameters to be parsed by the platform.
             UAPGamePlatform.LaunchParameters = launchParameters;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create 2");
 
-			// Setup the window class.
-			UAPGameWindow.Instance.Initialize(window, swapChainPanel, UAPGamePlatform.TouchQueue);
+            // Setup the window class.
+            UAPGameWindow.Instance.Initialize(window, swapChainPanel, UAPGamePlatform.TouchQueue);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create 3");
 
             // Construct the game.
             var game = new T();
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create 4");
 
             // Set the swap chain panel on the graphics mananger.
             if (game.graphicsDeviceManager == null)
                 throw new NullReferenceException("You must create the GraphicsDeviceManager in the Game constructor!");
             game.graphicsDeviceManager.SwapChainPanel = swapChainPanel;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create 5");
 
             // Start running the game.
             game.Run(GameRunBehavior.Asynchronous);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("XamlGame::Create end");
 
             // Return the created game object.
             return game;

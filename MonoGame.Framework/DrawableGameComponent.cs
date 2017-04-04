@@ -57,11 +57,15 @@ namespace Microsoft.Xna.Framework
 
         public override void Initialize()
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("DrawableGameComponent::Initialize 1");
+
             if (!_initialized)
             {
                 _initialized = true;
                 LoadContent();
             }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("DrawableGameComponent::Initialize end");
+
         }
 
         protected virtual void LoadContent() { }

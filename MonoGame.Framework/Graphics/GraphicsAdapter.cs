@@ -4,11 +4,91 @@
 
 using System;
 using System.Collections.ObjectModel;
+using Windows.Foundation.Diagnostics;
+
+
+using System;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using Windows.System.Threading;
+using System.Collections.Generic;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public sealed partial class GraphicsAdapter : IDisposable
     {
+        static object loggerWriteLock = new object();
+        static bool wasLoggerInit = false;
+
+        // Writes to C:\Users\<us ername>\AppData\Local\Packages\<app_package_name>\LocalState\FuzzTester.txt
+        public static void logToFileBlocking(string logMessage)
+        {
+           /* WorkItemHandler workItemHandler = action =>
+             {
+                 lock (loggerWriteLock)
+                 {
+                     // Create sample file; replace if exists.
+                     Windows.Storage.StorageFolder storageFolder =
+                         Windows.Storage.ApplicationData.Current.LocalFolder;
+
+                     Windows.Foundation.IAsyncOperation<Windows.Storage.StorageFile> sampleFile =
+                          storageFolder.CreateFileAsync("DebugLog.txt", Windows.Storage.CreationCollisionOption.OpenIfExists);
+
+                     Task<Windows.Storage.StorageFile> ft = sampleFile.AsTask();
+
+                     ft.Wait();
+                     Windows.Storage.StorageFile f = ft.Result;
+
+                     String timeStamp = DateTime.Now.ToString("HH:mm:ss.ff");
+                     Windows.Foundation.IAsyncAction aa = Windows.Storage.FileIO.AppendTextAsync(f, timeStamp + ": " + logMessage + "\r\n"); ;
+                     while (aa.Status != Windows.Foundation.AsyncStatus.Completed) ;
+                 }
+
+             };
+
+
+             Windows.Foundation.IAsyncAction a = ThreadPool.RunAsync(workItemHandler, WorkItemPriority.High, WorkItemOptions.None);
+             while (a.Status != Windows.Foundation.AsyncStatus.Completed) ;
+ */
+
+            lock (loggerWriteLock)
+            {
+                // Create sample file; replace if exists.
+                 Windows.Storage.StorageFolder storageFolder =
+                      Windows.Storage.ApplicationData.Current.LocalFolder;
+
+                  Windows.Foundation.IAsyncOperation<Windows.Storage.StorageFile> sampleFile =
+                       storageFolder.CreateFileAsync("DebugLog.txt", Windows.Storage.CreationCollisionOption.OpenIfExists);
+
+                  Task<Windows.Storage.StorageFile> ft = sampleFile.AsTask();
+
+                  ft.Wait();
+                  Windows.Storage.StorageFile f = ft.Result;
+
+                  String timeStamp = DateTime.Now.ToString("HH:mm:ss.ff");
+                  Windows.Foundation.IAsyncAction aa = Windows.Storage.FileIO.AppendTextAsync(f, timeStamp + ": " + logMessage + "\r\n"); ;
+
+                  while (aa.Status != Windows.Foundation.AsyncStatus.Completed) ;
+
+                 /*if(!wasLoggerInit)
+                {
+                    wasLoggerInit = true;
+                    // First time execution, initialize the logger 
+                    MetroEventSource.StorageFileEventListener verboseListener = new MetroEventSource.StorageFileEventListener("MyListenerVerbose");
+                    MetroEventSource.StorageFileEventListener informationListener = new MetroEventSource.StorageFileEventListener("MyListenerInformation");
+
+                    verboseListener.EnableEvents(MetroEventSource.MetroEventSource.Log, System.Diagnostics.Tracing.EventLevel.Verbose);
+                    informationListener.EnableEvents(MetroEventSource.MetroEventSource.Log, System.Diagnostics.Tracing.EventLevel.Informational);
+                }
+
+                MetroEventSource.MetroEventSource.Log.Info(logMessage);
+                */
+            }
+        }
+
+
         /// <summary>
         /// Defines the driver type for graphics adapter. Usable only on DirectX platforms for now.
         /// </summary>
@@ -36,13 +116,54 @@ namespace Microsoft.Xna.Framework.Graphics
 
         static GraphicsAdapter()
         {
+            logToFileBlocking("GraphicsAdapter::ctor 1");
+            logToFileBlocking("GraphicsAdapter::ctor 1");
+            logToFileBlocking("GraphicsAdapter::ctor 2: adapter: " + (_adapters != null)); 
+            if (_adapters != null)
+            {
+                logToFileBlocking("GraphicsAdapter::ctor 3: adapter count: " + (_adapters.Count));
+            }
+
             // NOTE: An adapter is a monitor+device combination, so we expect
             // at lease one adapter per connected monitor.
-            PlatformInitializeAdapters(out _adapters);
 
-            // The first adapter is considered the default.
-            _adapters[0].IsDefaultAdapter = true;
+            try 
+            {
+                const string NAME = "GA_11Vanilla";
+
+                PlatformInitializeAdapters11_Vanilla(out _adapters);
+
+                logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 4: adapter: " + (_adapters != null));
+                if (_adapters != null)
+                {
+                    logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 5: adapter count: " + (_adapters.Count));
+                }
+                if (_adapters != null)
+                {
+                    logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 5_0: adapter[0] : " + (_adapters[0] != null));
+                }
+                if (_adapters != null && _adapters.Count > 0)
+                {
+                    logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 5_1: adapter count: " + (_adapters[0].GetType().Name));
+                    logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 5_2: adapter count: " + (_adapters[0].DeviceName));
+                    logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 5_3: adapter count: " + (_adapters[0].CurrentDisplayMode.Width));
+                }
+
+
+                // The first adapter is considered the default.
+                _adapters[0].IsDefaultAdapter = true;
+
+                logToFileBlocking("GraphicsAdapter::ctor:" + NAME + " 7");
+            }
+            catch(Exception e)
+            {
+                logToFileBlocking("GraphicsAdapter::ctor EX GA_11Vanilla: "+e.ToString());
+                logToFileBlocking("GraphicsAdapter::ctor EX GA_11Vanilla: " + e.StackTrace);
+            }
+
         }
+
+     
 
         public static GraphicsAdapter DefaultAdapter
         {

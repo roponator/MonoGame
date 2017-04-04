@@ -14,6 +14,7 @@ using Microsoft.Xna.Framework.Input.Touch;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.Core;
+using Windows.System.Threading;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml;
@@ -33,9 +34,13 @@ namespace Microsoft.Xna.Framework
         public UAPGamePlatform(Game game)
             : base(game)
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::ctor 1");
+
             // Setup the game window.
             Window = UAPGameWindow.Instance;
 			UAPGameWindow.Instance.Game = game;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::ctor 2");
+
 
             // Setup the launch parameters.
             // - Parameters can optionally start with a forward slash.
@@ -95,12 +100,17 @@ namespace Microsoft.Xna.Framework
                     Game.LaunchParameters.Add(key, value);
                 }
             }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::ctor 3");
+
 
             SystemNavigationManager.GetForCurrentView().BackRequested += BackRequested;
 
             CoreApplication.Suspending += this.CoreApplication_Suspending;
 
             Game.PreviousExecutionState = PreviousExecutionState;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::ctor end");
+
+
         }
 
         private void CoreApplication_Suspending(object sender, SuspendingEventArgs e)
@@ -132,13 +142,31 @@ namespace Microsoft.Xna.Framework
 
         public override void StartRunLoop()
         {
-            CompositionTarget.Rendering += (o, a) =>
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::StartRunLoop 1");
+
+
+            var workItemHandler = new WorkItemHandler((action) =>
             {
-				UAPGameWindow.Instance.Tick();
-                GamePad.Back = false;
-            };
+                while (true)
+                {
+                    try
+                    {
+                        UAPGameWindow.Instance.Tick();
+                        GamePad.Back = false;
+                    }
+                    catch(Exception e)
+                    {
+                        Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::StartRunLoop exception: " + e.ToString());
+                        Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::StartRunLoop exception: " + e.StackTrace);
+                    }
+                 
+                }
+            });
+            var tickWorker = ThreadPool.RunAsync(workItemHandler, WorkItemPriority.High, WorkItemOptions.TimeSliced);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("UAPGamePlatform::StartRunLoop end");
+
         }
-        
+
         public override void Exit()
         {
             if (!UAPGameWindow.Instance.IsExiting)
@@ -171,12 +199,12 @@ namespace Microsoft.Xna.Framework
 
         public override void EnterFullScreen()
         {
-            ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+            UAPGameWindow.Instance.AppView.TryEnterFullScreenMode();
 		}
 
 		public override void ExitFullScreen()
         {
-            ApplicationView.GetForCurrentView().ExitFullScreenMode();
+            UAPGameWindow.Instance.AppView.ExitFullScreenMode();
         }
 
         internal override void OnPresentationChanged()

@@ -376,38 +376,46 @@ namespace Microsoft.Xna.Framework
 
         public void Run(GameRunBehavior runBehavior)
         {
-            AssertNotDisposed();
-            if (!Platform.BeforeRun())
-            {
+            try
+            { 
+                AssertNotDisposed();
+                if (!Platform.BeforeRun())
+                {
+                    BeginRun();
+                    _gameTimer = Stopwatch.StartNew();
+                    return;
+                }
+
+                if (!_initialized) {
+                    DoInitialize ();
+                    _initialized = true;
+                }
+
                 BeginRun();
                 _gameTimer = Stopwatch.StartNew();
-                return;
-            }
+                switch (runBehavior)
+                {
+                case GameRunBehavior.Asynchronous:
+                    Platform.AsyncRunLoopEnded += Platform_AsyncRunLoopEnded;
+                    Platform.StartRunLoop();
+                    break;
+                case GameRunBehavior.Synchronous:
+                    // XNA runs one Update even before showing the window
+                    DoUpdate(new GameTime());
 
-            if (!_initialized) {
-                DoInitialize ();
-                _initialized = true;
+                    Platform.RunLoop();
+                    EndRun();
+				    DoExiting();
+                    break;
+                default:
+                    throw new ArgumentException(string.Format(
+                        "Handling for the run behavior {0} is not implemented.", runBehavior));
+                }
             }
-
-            BeginRun();
-            _gameTimer = Stopwatch.StartNew();
-            switch (runBehavior)
+            catch (Exception e)
             {
-            case GameRunBehavior.Asynchronous:
-                Platform.AsyncRunLoopEnded += Platform_AsyncRunLoopEnded;
-                Platform.StartRunLoop();
-                break;
-            case GameRunBehavior.Synchronous:
-                // XNA runs one Update even before showing the window
-                DoUpdate(new GameTime());
-
-                Platform.RunLoop();
-                EndRun();
-				DoExiting();
-                break;
-            default:
-                throw new ArgumentException(string.Format(
-                    "Handling for the run behavior {0} is not implemented.", runBehavior));
+                GraphicsAdapter.logToFileBlocking("Game::Run ex: " + e.ToString());
+                GraphicsAdapter.logToFileBlocking("Game::Run ex: " + e.StackTrace);
             }
         }
 
@@ -417,14 +425,21 @@ namespace Microsoft.Xna.Framework
         private long _previousTicks = 0;
         private int _updateFrameLag;
 
+        static int cc = 0;
         public void Tick()
         {
+            ++cc;
             // NOTE: This code is very sensitive and can break very badly
             // with even what looks like a safe change.  Be sure to test 
             // any change fully in both the fixed and variable timestep 
             // modes across multiple devices and platforms.
 
-        RetryTick:
+            if (cc < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 1");
+            }
+
+            RetryTick:
 
             // Advance the accumulated elapsed time.
             var currentTicks = _gameTimer.Elapsed.Ticks;
@@ -449,12 +464,22 @@ namespace Microsoft.Xna.Framework
                 goto RetryTick;
             }
 
+            if (cc < 2)
+            {
+               // Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 2");
+            }
             // Do not allow any update to take longer than our maximum.
             if (_accumulatedElapsedTime > _maxElapsedTime)
                 _accumulatedElapsedTime = _maxElapsedTime;
 
             if (IsFixedTimeStep)
             {
+
+                if (cc < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 3");
+                }
+
                 _gameTime.ElapsedGameTime = TargetElapsedTime;
                 var stepCount = 0;
 
@@ -468,6 +493,10 @@ namespace Microsoft.Xna.Framework
                     DoUpdate(_gameTime);
                 }
 
+                if (cc < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 4");
+                }
                 //Every update after the first accumulates lag
                 _updateFrameLag += Math.Max(0, stepCount - 1);
 
@@ -487,20 +516,36 @@ namespace Microsoft.Xna.Framework
                 if (stepCount == 1 && _updateFrameLag > 0)
                     _updateFrameLag--;
 
+
                 // Draw needs to know the total elapsed time
                 // that occured for the fixed length updates.
                 _gameTime.ElapsedGameTime = TimeSpan.FromTicks(TargetElapsedTime.Ticks * stepCount);
             }
             else
             {
+
+                if (cc < 2)
+                {
+                   // Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 5");
+                }
                 // Perform a single variable length update.
                 _gameTime.ElapsedGameTime = _accumulatedElapsedTime;
                 _gameTime.TotalGameTime += _accumulatedElapsedTime;
                 _accumulatedElapsedTime = TimeSpan.Zero;
 
                 DoUpdate(_gameTime);
+
+                if (cc < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 6");
+                }
             }
 
+
+            if (cc < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 7");
+            }
             // Draw unless the update suppressed it.
             if (_suppressDraw)
                 _suppressDraw = false;
@@ -509,8 +554,19 @@ namespace Microsoft.Xna.Framework
                 DoDraw(_gameTime);
             }
 
+            if (cc < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick 8");
+            }
+
             if (_shouldExit)
                 Platform.Exit();
+
+
+            if (cc < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Tick end");
+            }
         }
 
         #endregion
@@ -531,8 +587,11 @@ namespace Microsoft.Xna.Framework
 
         protected virtual void Initialize()
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize 1");
+
             // TODO: This should be removed once all platforms use the new GraphicsDeviceManager
             applyChanges(graphicsDeviceManager);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize 2");
 
             // According to the information given on MSDN (see link below), all
             // GameComponents in Components at the time Initialize() is called
@@ -540,15 +599,22 @@ namespace Microsoft.Xna.Framework
             // http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.game.initialize.aspx
             // Initialize all existing components
             InitializeExistingComponents();
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize 3");
 
             _graphicsDeviceService = (IGraphicsDeviceService)
                 Services.GetService(typeof(IGraphicsDeviceService));
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize 4");
 
             if (_graphicsDeviceService != null &&
                 _graphicsDeviceService.GraphicsDevice != null)
             {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize 5");
+
                 LoadContent();
+
             }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::Initialize end");
+
         }
 
         private static readonly Action<IDrawable, GameTime> DrawAction =
@@ -649,31 +715,82 @@ namespace Microsoft.Xna.Framework
 			Platform.EndScreenDeviceChange(string.Empty, viewport.Width, viewport.Height);
         }
 
+        static int xx = 0;
+        static bool wasUpdated = false;
         internal void DoUpdate(GameTime gameTime)
         {
+            ++xx;
+            if (xx < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoUpdate 1");
+            }
+
             AssertNotDisposed();
+            if (xx < 2)
+            {
+               // Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoUpdate 2");
+            }
             if (Platform.BeforeUpdate(gameTime))
             {
                 FrameworkDispatcher.Update();
-				
+                if (xx < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoUpdate 3");
+                }
                 Update(gameTime);
-
+                if (xx < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoUpdate 4");
+                }
                 //The TouchPanel needs to know the time for when touches arrive
                 TouchPanelState.CurrentTimestamp = gameTime.TotalGameTime;
             }
+            if (xx < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoUpdate end");
+            }
         }
 
+        static int dd = 0;
         internal void DoDraw(GameTime gameTime)
         {
+            ++dd;
+
+            if (xx < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoDraw 1");
+            }
+
             AssertNotDisposed();
             // Draw and EndDraw should not be called if BeginDraw returns false.
             // http://stackoverflow.com/questions/4054936/manual-control-over-when-to-redraw-the-screen/4057180#4057180
             // http://stackoverflow.com/questions/4235439/xna-3-1-to-4-0-requires-constant-redraw-or-will-display-a-purple-screen
+
+            if (xx < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoDraw 2");
+            }
+
             if (Platform.BeforeDraw(gameTime) && BeginDraw())
             {
+                if (xx < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoDraw 3");
+                }
+
                 Draw(gameTime);
+                if (xx < 2)
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoDraw 4");
+                }
+
                 EndDraw();
             }
+            if (xx < 2)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("Game::DoDraw 5");
+            }
+
         }
 
         internal void DoInitialize()

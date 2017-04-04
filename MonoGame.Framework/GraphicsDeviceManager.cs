@@ -53,6 +53,8 @@ namespace Microsoft.Xna.Framework
         /// <param name="game">The game instance to attach.</param>
         public GraphicsDeviceManager(Game game)
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 1");
+
             if (game == null)
                 throw new ArgumentNullException("game", "Game cannot be null.");
 
@@ -62,6 +64,7 @@ namespace Microsoft.Xna.Framework
             _preferredBackBufferFormat = SurfaceFormat.Color;
             _preferredDepthStencilFormat = DepthFormat.Depth24;
             _synchronizedWithVerticalRetrace = true;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 2");
 
             // Assume the window client size as the default back 
             // buffer resolution in the landscape orientation.
@@ -76,6 +79,7 @@ namespace Microsoft.Xna.Framework
                 _preferredBackBufferWidth = clientBounds.Height;
                 _preferredBackBufferHeight = clientBounds.Width;
             }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 3");
 
             // Default to windowed mode... this is ignored on platforms that don't support it.
             _wantFullScreen = false;
@@ -83,15 +87,20 @@ namespace Microsoft.Xna.Framework
             // XNA would read this from the manifest, but it would always default
             // to reach unless changed.  So lets mimic that without the manifest bit.
             GraphicsProfile = GraphicsProfile.Reach;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 4");
 
             // Let the plaform optionally overload construction defaults.
             PlatformConstruct();
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 5");
 
             if (_game.Services.GetService(typeof(IGraphicsDeviceManager)) != null)
                 throw new ArgumentException("A graphics device manager is already registered.  The graphics device manager cannot be changed once it is set.");
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor 6");
 
             _game.Services.AddService(typeof(IGraphicsDeviceManager), this);
             _game.Services.AddService(typeof(IGraphicsDeviceService), this);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::ctor end");
+
         }
 
         ~GraphicsDeviceManager()
@@ -101,34 +110,55 @@ namespace Microsoft.Xna.Framework
 
         private void CreateDevice()
         {
-            if (_graphicsDevice != null)
-                return;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 1");
 
             try
-            {
-                if (!_initialized)
-                    Initialize();
+            { 
+                if (_graphicsDevice != null)
+                    return;
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 2");
 
-                var gdi = DoPreparingDeviceSettings();
-                CreateDevice(gdi);
+                try
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 3");
+
+                    if (!_initialized)
+                        Initialize();
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 4");
+
+                    var gdi = DoPreparingDeviceSettings();
+                    CreateDevice(gdi);
+                    Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 5");
+
+                }
+                catch (NoSuitableGraphicsDeviceException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new NoSuitableGraphicsDeviceException("Failed to create graphics device!", ex);
+                }
+                Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 6");
             }
-            catch (NoSuitableGraphicsDeviceException)
+            catch (Exception e)
             {
-                throw;
+                GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 7 ex: " + e.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice 7 ex: " + e.StackTrace);
             }
-            catch (Exception ex)
-            {
-                throw new NoSuitableGraphicsDeviceException("Failed to create graphics device!", ex);
-            }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDevice end");
         }
 
         private void CreateDevice(GraphicsDeviceInformation gdi)
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV2 1");
+
             if (_graphicsDevice != null)
                 return;
 
             _graphicsDevice = new GraphicsDevice(gdi);
             _shouldApplyChanges = false;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV2 2");
 
             // hook up reset events
             GraphicsDevice.DeviceReset     += (sender, args) => OnDeviceReset(args);
@@ -137,13 +167,26 @@ namespace Microsoft.Xna.Framework
             // update the touchpanel display size when the graphicsdevice is reset
             _graphicsDevice.DeviceReset += UpdateTouchPanel;
             _graphicsDevice.PresentationChanged += OnPresentationChanged;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV2 3");
 
             OnDeviceCreated(EventArgs.Empty);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV2 end");
+
         }
 
         void IGraphicsDeviceManager.CreateDevice()
         {
-            CreateDevice();
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV3");
+
+            try
+            { 
+                CreateDevice();
+            }
+            catch (Exception e)
+            {
+                GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV3 ex: " + e.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::CreateDeviceV37 ex: " + e.StackTrace);
+            }
         }
 
         public bool BeginDraw()
@@ -211,28 +254,6 @@ namespace Microsoft.Xna.Framework
 
                 if (gdi.PresentationParameters == null || gdi.Adapter == null)
                     throw new NullReferenceException("Members should not be set to null in PreparingDeviceSettingsEventArgs");
-
-                if (gdi.PresentationParameters.MultiSampleCount > 0)
-                {
-                    // Round down MultiSampleCount to the nearest power of two
-                    // hack from http://stackoverflow.com/a/2681094
-                    // Note: this will return an incorrect, but large value
-                    // for very large numbers. That doesn't matter because
-                    // the number will get clamped below anyway in this case.
-                    var msc = gdi.PresentationParameters.MultiSampleCount;
-                    msc = msc | (msc >> 1);
-                    msc = msc | (msc >> 2);
-                    msc = msc | (msc >> 4);
-                    msc -= (msc >> 1);
-
-                    if (GraphicsDevice != null)
-                    {
-                        // and clamp it to what the device can handle
-                        if (msc > GraphicsDevice.GraphicsCapabilities.MaxMultiSampleCount)
-                            msc = GraphicsDevice.GraphicsCapabilities.MaxMultiSampleCount;
-                    }
-                    gdi.PresentationParameters.MultiSampleCount = msc;
-                }
             }
 
             return gdi;
@@ -281,11 +302,14 @@ namespace Microsoft.Xna.Framework
 
         private void PreparePresentationParameters(PresentationParameters presentationParameters)
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::PreparePresentationParameters 1");
+
             presentationParameters.BackBufferFormat = _preferredBackBufferFormat;
             presentationParameters.BackBufferWidth = _preferredBackBufferWidth;
             presentationParameters.BackBufferHeight = _preferredBackBufferHeight;
             presentationParameters.DepthStencilFormat = _preferredDepthStencilFormat;
             presentationParameters.IsFullScreen = _wantFullScreen;
+            presentationParameters.HardwareModeSwitch = _hardwareModeSwitch;
             presentationParameters.PresentationInterval = _synchronizedWithVerticalRetrace ? PresentInterval.One : PresentInterval.Immediate;
             presentationParameters.DisplayOrientation = _game.Window.CurrentOrientation;
             presentationParameters.DeviceWindowHandle = _game.Window.Handle;
@@ -303,17 +327,24 @@ namespace Microsoft.Xna.Framework
             {
                 presentationParameters.MultiSampleCount = 0;
             }
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::PreparePresentationParameters 2");
 
             PlatformPreparePresentationParameters(presentationParameters);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::PreparePresentationParameters end");
+
         }
 
         private void PrepareGraphicsDeviceInformation(GraphicsDeviceInformation gdi)
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::PrepareGraphicsDeviceInformation 1");
+
             gdi.Adapter = GraphicsAdapter.DefaultAdapter;
             gdi.GraphicsProfile = GraphicsProfile;
             var pp = new PresentationParameters();
             PreparePresentationParameters(pp);
             gdi.PresentationParameters = pp;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::PrepareGraphicsDeviceInformation end");
+
         }
 
         /// <summary>
@@ -364,15 +395,22 @@ namespace Microsoft.Xna.Framework
 
         private void Initialize()
         {
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::Initialize 1");
+
             _game.Window.SetSupportedOrientations(_supportedOrientations);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::Initialize 2");
 
             var presentationParameters = new PresentationParameters();
             PreparePresentationParameters(presentationParameters);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::Initialize 3");
 
             // Allow for any per-platform changes to the presentation.
             PlatformInitialize(presentationParameters);
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::Initialize 4");
 
             _initialized = true;
+            Microsoft.Xna.Framework.Graphics.GraphicsAdapter.logToFileBlocking("GraphicsDeviceManager::Initialize end");
+
         }
 
         private void UpdateTouchPanel(object sender, EventArgs eventArgs)

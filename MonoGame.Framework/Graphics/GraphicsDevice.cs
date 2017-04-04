@@ -181,14 +181,26 @@ namespace Microsoft.Xna.Framework.Graphics
         {
         }
 
-        internal GraphicsDevice ()
+        internal GraphicsDevice()
 		{
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor 1");
+
             PresentationParameters = new PresentationParameters();
             PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor 2");
+
             Setup();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor 3");
+
             GraphicsCapabilities = new GraphicsCapabilities();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor 4");
+
             GraphicsCapabilities.Initialize(this);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor 5");
+
             Initialize();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::internal::ctor end");
+
         }
 
         /// <summary>
@@ -202,23 +214,56 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </exception>
         public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)
         {
-            if (adapter == null)
-                throw new ArgumentNullException("adapter");
-            if (!adapter.IsProfileSupported(graphicsProfile))
-                throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
-            if (presentationParameters == null)
-                throw new ArgumentNullException("presentationParameters");
-            Adapter = adapter;
-            PresentationParameters = presentationParameters;
-            _graphicsProfile = graphicsProfile;
-            Setup();
-            GraphicsCapabilities = new GraphicsCapabilities();
-            GraphicsCapabilities.Initialize(this);
-            Initialize();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 1: "+(adapter!=null));
+
+            try
+            {
+               
+                if (adapter == null)
+                    throw new ArgumentNullException("adapter");
+                if (!adapter.IsProfileSupported(graphicsProfile))
+                    throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
+                if (presentationParameters == null)
+                    throw new ArgumentNullException("presentationParameters");
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 2");
+
+                Adapter = adapter;
+                PresentationParameters = presentationParameters;
+                _graphicsProfile = graphicsProfile;
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 3");
+
+                Setup();
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 4");
+
+                GraphicsCapabilities = new GraphicsCapabilities();
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 5");
+
+                GraphicsCapabilities.Initialize(this);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 6");
+
+                try
+                {
+                    Initialize();
+                }
+                catch (Exception e)
+                {
+                    GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 7 ex: " + e.ToString());
+                    GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 7 ex: " + e.StackTrace);
+                }
+            }
+            catch (Exception e)
+            {
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 8 ex: " + e.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 8 ex: " + e.StackTrace);
+            }
+          GraphicsAdapter.logToFileBlocking("GraphicsDevice::ctor 7");
+
         }
 
         private void Setup()
         {
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 1");
+
 #if DEBUG
             if (DisplayMode == null)
             {
@@ -228,19 +273,23 @@ namespace Microsoft.Xna.Framework.Graphics
                     "https://github.com/MonoGame/MonoGame/issues/5040 for more information.");
             }
 #endif
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 2");
 
             // Initialize the main viewport
             _viewport = new Viewport (0, 0,
 			                         DisplayMode.Width, DisplayMode.Height);
 			_viewport.MaxDepth = 1.0f;
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 3");
 
             PlatformSetup();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 4");
 
             VertexTextures = new TextureCollection(this, MaxVertexTextureSlots, true);
             VertexSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots, true);
 
             Textures = new TextureCollection(this, MaxTextureSlots, false);
             SamplerStates = new SamplerStateCollection(this, MaxTextureSlots, false);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 5");
 
             _blendStateAdditive = BlendState.Additive.Clone();
             _blendStateAlphaBlend = BlendState.AlphaBlend.Clone();
@@ -252,6 +301,7 @@ namespace Microsoft.Xna.Framework.Graphics
             _depthStencilStateDefault = DepthStencilState.Default.Clone();
             _depthStencilStateDepthRead = DepthStencilState.DepthRead.Clone();
             _depthStencilStateNone = DepthStencilState.None.Clone();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 6");
 
             DepthStencilState = DepthStencilState.Default;
 
@@ -262,17 +312,48 @@ namespace Microsoft.Xna.Framework.Graphics
             RasterizerState = RasterizerState.CullCounterClockwise;
 
             EffectCache = new Dictionary<int, Effect>();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Setup 7");
+
         }
 
         ~GraphicsDevice()
         {
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::dtor 1");
+
             Dispose(false);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::dtor end");
+
         }
 
+        private int GetClampedMultisampleCount(
+            int multiSampleCount)
+        {
+            if (multiSampleCount > 1)
+            {
+                // Round down MultiSampleCount to the nearest power of two
+                // hack from http://stackoverflow.com/a/2681094
+                // Note: this will return an incorrect, but large value
+                // for very large numbers. That doesn't matter because
+                // the number will get clamped below anyway in this case.
+                var msc = multiSampleCount;
+                msc = msc | (msc >> 1);
+                msc = msc | (msc >> 2);
+                msc = msc | (msc >> 4);
+                msc -= (msc >> 1);
+                // and clamp it to what the device can handle
+                if (msc > GraphicsCapabilities.MaxMultiSampleCount)
+                    msc = GraphicsCapabilities.MaxMultiSampleCount;
+
+                return msc;
+            }
+            else return 0;
+        }
         internal void Initialize()
         {
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Initialize 1");
+
             PlatformInitialize();
-            GraphicsCapabilities.InitializeAfterResources(this);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Initialize 2");
 
             // Force set the default render states.
             _blendStateDirty = _depthStencilStateDirty = _rasterizerStateDirty = true;
@@ -286,6 +367,7 @@ namespace Microsoft.Xna.Framework.Graphics
             VertexSamplerStates.Clear();
             Textures.Clear();
             SamplerStates.Clear();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Initialize 3");
 
             // Clear constant buffers
             _vertexConstantBuffers.Clear();
@@ -301,9 +383,12 @@ namespace Microsoft.Xna.Framework.Graphics
             // Set the default scissor rect.
             _scissorRectangleDirty = true;
             ScissorRectangle = _viewport.Bounds;
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Initialize 4");
 
             // Set the default render target.
             ApplyRenderTargets(null);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Initialize end");
+
         }
 
         public RasterizerState RasterizerState
@@ -562,6 +647,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
         public void Reset()
         {
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Reset 1");
+
             PlatformValidatePresentationParameters(PresentationParameters);
 
             if (DeviceResetting != null)
@@ -574,6 +661,9 @@ namespace Microsoft.Xna.Framework.Graphics
                 PresentationChanged(this, EventArgs.Empty);
             if (DeviceReset != null)
                 DeviceReset(this, EventArgs.Empty);
+
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice::Reset end");
+
         }
 
         public void Reset(PresentationParameters presentationParameters)
