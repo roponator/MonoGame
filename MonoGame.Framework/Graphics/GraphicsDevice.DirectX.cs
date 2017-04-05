@@ -32,8 +32,8 @@ namespace Microsoft.Xna.Framework.Graphics
     public partial class GraphicsDevice
     {
         // Core Direct3D Objects
-        internal SharpDX.Direct3D11.Device2 _d3dDevice;
-        internal SharpDX.Direct3D11.DeviceContext2 _d3dContext;
+        internal SharpDX.Direct3D11.Device1 _d3dDevice;
+        internal SharpDX.Direct3D11.DeviceContext1 _d3dContext;
         internal SharpDX.Direct3D11.RenderTargetView _renderTargetView;
         internal SharpDX.Direct3D11.DepthStencilView _depthStencilView;
         private int _vertexBufferSlotsUsed;
@@ -356,13 +356,15 @@ namespace Microsoft.Xna.Framework.Graphics
                             SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport | DeviceCreationFlags.Debug,
                             featureLevels.ToArray()))
                         {
+                           
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try0");
+                            printDevice(defaultDevice);
 
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try0: " + defaultDevice.GetType().Name);
 
-                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1>();
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try0");
-
+                            printDevice(_d3dDevice);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0: " + _d3dDevice.GetType().Name);
                         }
                     }
@@ -384,12 +386,12 @@ namespace Microsoft.Xna.Framework.Graphics
                 featureLevels.ToArray()))
                         {
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try0_1");
-
+                            printDevice(defaultDevice);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try0_1 def d3d device: " + defaultDevice.GetType().Name);
 
-                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1>();
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try0_1");
-
+                            printDevice(_d3dDevice);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0_1 d3d device: " + _d3dDevice.GetType().Name);
                         }
 
@@ -410,12 +412,13 @@ namespace Microsoft.Xna.Framework.Graphics
                         using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport | SharpDX.Direct3D11.DeviceCreationFlags.Debug, featureLevels.ToArray()))
                         {
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5");
+                            printDevice(defaultDevice);
 
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0 def d3d device: " + defaultDevice.GetType().Name);
 
-                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1>();
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1");
-
+                            printDevice(_d3dDevice);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2 d3d device: " + _d3dDevice.GetType().Name);
                         }
 
@@ -435,12 +438,13 @@ namespace Microsoft.Xna.Framework.Graphics
                         using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport, featureLevels.ToArray()))
                         {
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try2");
+                            printDevice(defaultDevice);
 
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try2: def d3d device " + defaultDevice.GetType().Name);
 
-                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1>();
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try2");
-
+                            printDevice(_d3dDevice);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try2: d3d device " + _d3dDevice.GetType().Name);
 
                         }
@@ -484,7 +488,7 @@ namespace Microsoft.Xna.Framework.Graphics
                         {
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try3 swap: " + swapChain.GetType().Name);
                         }
-
+                        printDevice(dev);
                     }
                     catch (Exception e)
                     {
@@ -493,14 +497,17 @@ namespace Microsoft.Xna.Framework.Graphics
                     }
                 }
 
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6");
 
 
                 // Necessary to enable video playback
                 var multithread = _d3dDevice.QueryInterface<SharpDX.Direct3D.DeviceMultithread>();
                 multithread.SetMultithreadProtected(true);
-                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6: " + multithread.GetType().Name);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_1: " + multithread.GetType().Name);
 
-// TODO ROPO #if DEBUG
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
+
+                // TODO ROPO #if DEBUG
             }
             catch (SharpDXException)
             {
@@ -516,7 +523,7 @@ namespace Microsoft.Xna.Framework.Graphics
                     {
                         GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_3 ex: " + defaultDevice.GetType().Name);
                     }
-                    _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                    _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device1>();
 
                     GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_4 ex: " + (_d3dDevice != null));
 
@@ -528,11 +535,10 @@ namespace Microsoft.Xna.Framework.Graphics
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_6 ex");
 
             }
-//#endif
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 7: d3d device type " + _d3dDevice.GetType().Name);
 
+  
             // Get Direct3D 11.1 context
-            _d3dContext = _d3dDevice.ImmediateContext.QueryInterface<SharpDX.Direct3D11.DeviceContext2>();
+            _d3dContext = _d3dDevice.ImmediateContext.QueryInterface<SharpDX.Direct3D11.DeviceContext1>();
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8: d3d device context type " + _d3dContext.GetType().Name);
 
             // Create the Direct2D device.
@@ -551,10 +557,37 @@ namespace Microsoft.Xna.Framework.Graphics
 
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources end " + _d2dContext.GetType().Name);
 
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
         }
 
+        private void printDevice(SharpDX.Direct3D11.Device dev)
+        {
 
+            //#endif
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : d3d device context type " + (dev != null));
+
+            if (dev != null)
+            {
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : d3d device type " + dev.GetType().Name);
+
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + dev.DeviceRemovedReason.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : feature level " + dev.FeatureLevel.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : exception mode " + dev.ExceptionMode.ToString());
+
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckFullNonPow2TextureSupport " + dev.CheckFullNonPow2TextureSupport());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckMultisampleQualityLevels " + dev.CheckMultisampleQualityLevels(Format.R8G8B8A8_UInt, 1));
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckShaderMinimumPrecisionSupport() " + dev.CheckShaderMinimumPrecisionSupport());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckShaderMinimumPrecisionSupport().PixelShaderMinPrecision " + dev.CheckShaderMinimumPrecisionSupport().PixelShaderMinPrecision);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckShaderMinimumPrecisionSupport().AllOtherShaderStagesMinPrecision " + dev.CheckShaderMinimumPrecisionSupport().AllOtherShaderStagesMinPrecision);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckTileBasedDeferredRendererSupport() " + dev.CheckTileBasedDeferredRendererSupport());
+
+                bool supportCommandLists = false;
+                bool supportsConcurrentRes = false;
+                dev.CheckThreadingSupport(out supportsConcurrentRes, out supportCommandLists);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : CheckThreadingSupport() " + supportsConcurrentRes + ", " + supportCommandLists);
+            }
+        }
 
         internal void CreateSizeDependentResourcesVanilla()
         {
@@ -588,9 +621,11 @@ namespace Microsoft.Xna.Framework.Graphics
             Array.Clear(_currentRenderTargetBindings, 0, _currentRenderTargetBindings.Length);
             _currentRenderTargetCount = 0;
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 3");
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
             // Make sure all pending rendering commands are flushed.
             _d3dContext.Flush();
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
             // We need presentation parameters to continue here.
             if (PresentationParameters == null ||
@@ -628,6 +663,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
             }
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 5");
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
             // Use BGRA for the swap chain.
             var format = PresentationParameters.BackBufferFormat == SurfaceFormat.Color ?
@@ -682,30 +718,39 @@ namespace Microsoft.Xna.Framework.Graphics
                     Scaling = SharpDX.DXGI.Scaling.Stretch,
                 };
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 9");
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
                 // Once the desired swap chain description is configured, it must be created on the same adapter as our D3D Device
 
                 // TODO
                 // First, retrieve the underlying DXGI Device from the D3D Device.
                 // Creates the swap chain 
-                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device2>())
+                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device1>())
                 using (var dxgiAdapter = dxgiDevice2.Adapter)
                 using (var dxgiFactory2 = dxgiAdapter.GetParent<SharpDX.DXGI.Factory2>())
                 {
+                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
+
                     GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 10: " +
                         dxgiDevice2.GetType().Name + ", " + dxgiAdapter.GetType().Name + ", " + dxgiFactory2.GetType().Name);
 
                     if (PresentationParameters.DeviceWindowHandle != IntPtr.Zero)
                     {
                         GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 11");
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
                         // Creates a SwapChain from a CoreWindow pointer.
                         var coreWindow = Marshal.GetObjectForIUnknown(PresentationParameters.DeviceWindowHandle) as CoreWindow;
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
+
                         using (var comWindow = new ComObject(coreWindow))
                         {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
+
 #if WINDOWS_PHONE81 || WINDOWS_UAP || WINRT
                             _swapChain = new SwapChain1(dxgiFactory2, dxgiDevice2, comWindow, ref desc);
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 11_1: " + _swapChain.GetType().Name);
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
 #else
                            _swapChain = dxgiFactory2.CreateSwapChainForCoreWindow(_d3dDevice, comWindow, ref desc, null);
@@ -718,14 +763,25 @@ namespace Microsoft.Xna.Framework.Graphics
                         try
                         {
                             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 12");
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
+                           
                             _swapChainPanel = PresentationParameters.SwapChainPanel;
                             using (var nativePanel = ComObject.As<SharpDX.DXGI.ISwapChainPanelNative>(PresentationParameters.SwapChainPanel))
                             {
+                                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
+
                                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 12_1: " + nativePanel.GetType().Name);
+                                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " disposal: " +
+                                    nativePanel.IsDisposed+", "+ 
+                                    dxgiDevice2.IsDisposed+", "+ 
+                                    dxgiFactory2.IsDisposed+", "+                        
+                                   _d3dDevice.IsDisposed+", "+
+                                   _d3dContext.IsDisposed+", current:" + dxgiFactory2.IsCurrent);
 
                                 _swapChain = new SwapChain1(dxgiFactory2, dxgiDevice2, ref desc, null);
                                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 12_2: " + _swapChain.GetType().Name);
+                                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
 
                                 nativePanel.SwapChain = _swapChain;
                             }
