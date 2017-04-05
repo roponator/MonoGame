@@ -734,7 +734,7 @@ namespace Microsoft.Xna.Framework.Graphics
                     GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 10: " +
                         dxgiDevice2.GetType().Name + ", " + dxgiAdapter.GetType().Name + ", " + dxgiFactory2.GetType().Name);
 
-                    if (PresentationParameters.DeviceWindowHandle != IntPtr.Zero)
+                   if (PresentationParameters.DeviceWindowHandle != IntPtr.Zero)
                     {
                         GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 11");
                         GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
@@ -768,9 +768,9 @@ namespace Microsoft.Xna.Framework.Graphics
                            
                             _swapChainPanel = PresentationParameters.SwapChainPanel;
                             using (var nativePanel = ComObject.As<SharpDX.DXGI.ISwapChainPanelNative>(PresentationParameters.SwapChainPanel))
-                            {
+                            {                             
                                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::printDevice : removed reason " + _d3dDevice.DeviceRemovedReason.ToString());
-
+                               
                                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " 12_1: " + nativePanel.GetType().Name);
                                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::" + NAME + " disposal: " +
                                     nativePanel.IsDisposed+", "+ 
@@ -1342,8 +1342,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 lock (_d3dContext)
                 {
                     // ropo
-                    //_swapChain.Present(1, PresentFlags.None, parameters);
-                    _swapChain.Present(1, PresentFlags.None);
+                    _swapChain.Present(1, PresentFlags.None, parameters);
+                    //_swapChain.Present(1, PresentFlags.None);
                     // ((SwapChain1)_swapChain)
                 }
             }
