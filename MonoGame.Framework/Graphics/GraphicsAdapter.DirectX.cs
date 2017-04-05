@@ -14,6 +14,11 @@ namespace Microsoft.Xna.Framework.Graphics
     {
         SharpDX.DXGI.Adapter1 _adapter;
 
+        public SharpDX.DXGI.Adapter1 GetAdapter()
+        {
+            return _adapter;
+        }
+
         private static readonly Dictionary<SharpDX.DXGI.Format, SurfaceFormat> FormatTranslations = new Dictionary<SharpDX.DXGI.Format, SurfaceFormat>
         {
             { SharpDX.DXGI.Format.R8G8B8A8_UNorm, SurfaceFormat.Color },
@@ -24,15 +29,14 @@ namespace Microsoft.Xna.Framework.Graphics
         private static void PlatformInitializeAdapters11_Vanilla(out ReadOnlyCollection<GraphicsAdapter> adapters)
         {
             const string NAME = "PlatformInitializeAdapters11_Vanilla";
-            // TODO ROPO: COULD SEND HIM A DEBUG FACTORY BUILD, NOT SURE IF HE CAN RUN IT, AS IF YOU NEED SOME SPECIAL DEBUG SDK LAYER...
-            bool debugFactory = false;
-            Factory2 factory = new SharpDX.DXGI.Factory2(debugFactory);
+
+            Factory2 factory = new SharpDX.DXGI.Factory2();
 
             logToFileBlocking("GraphicsAdapter::"+ NAME+" 1: factory: " + (factory != null));
 
             if(factory != null)
             {
-                logToFileBlocking("GraphicsAdapter::" + NAME + " 1_1: factory type: " + (factory.GetType().Name));
+                logToFileBlocking("GraphicsAdapter::" + NAME + " 1_1: dxgi factory type: " + (factory.GetType().Name));
             }
 
             var adapterCount = factory.GetAdapterCount1();
@@ -55,7 +59,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 if (device != null)
                 {
-                    logToFileBlocking("GraphicsAdapter::" + NAME + " 6_1: Adapter type: " + device.GetType().Name);
+                    logToFileBlocking("GraphicsAdapter::" + NAME + " 6_1: DXGI Adapter type: " + device.GetType().Name);
                 }
 
                 var monitorCount = device.GetOutputCount();
@@ -174,7 +178,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
             if (factory != null)
             {
-                logToFileBlocking("GraphicsAdapter::" + NAME + " 1_1: factory type: " + (factory.GetType().Name));
+                logToFileBlocking("GraphicsAdapter::" + NAME + " 1_1: dxgi factory type: " + (factory.GetType().Name));
             }
 
             var adapterCount = factory.GetAdapterCount1();
@@ -197,7 +201,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 if (device != null)
                 {
-                    logToFileBlocking("GraphicsAdapter::" + NAME + "  Adapter type: " + device.GetType().Name);
+                    logToFileBlocking("GraphicsAdapter::" + NAME + "  DXGI Adapter type: " + device.GetType().Name);
                 }
 
                 var monitorCount = device.GetOutputCount();

@@ -21,7 +21,7 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </returns>
         public IntPtr GetSharedHandle()
         {
-            using (var resource = _texture.QueryInterface<SharpDX.DXGI.Resource1>())
+            using (var resource = _texture.QueryInterface<SharpDX.DXGI.Resource>())
                 return resource.SharedHandle;
         }
 

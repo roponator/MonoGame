@@ -171,14 +171,14 @@ namespace Microsoft.Xna.Framework.Graphics
 #if !WINDOWS_PHONE
             try
             {
-              
+
                 CreateSizeDependentResourcesVanilla();
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::PlatformInitialize 1_1");
 
             }
             catch (Exception e)
             {
-                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::PlatformInitialize ex: "+e.ToString());
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::PlatformInitialize ex: " + e.ToString());
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::PlatformInitialize ex: " + e.StackTrace);
             }
 #endif
@@ -267,7 +267,7 @@ namespace Microsoft.Xna.Framework.Graphics
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 1");
 
 #if DEBUG
-            var debugLevel = SharpDX.Direct2D1.DebugLevel.Information;
+            var debugLevel = SharpDX.Direct2D1.DebugLevel.Information; // TODO ROPO
 #else
             var debugLevel = SharpDX.Direct2D1.DebugLevel.None; 
 #endif
@@ -283,15 +283,15 @@ namespace Microsoft.Xna.Framework.Graphics
             // Allocate new references
             _d2dFactory = new SharpDX.Direct2D1.Factory2(SharpDX.Direct2D1.FactoryType.SingleThreaded, debugLevel);
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 3");
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 3_1: "+ _d2dFactory.GetType().Name);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 3_1: 2D type " + _d2dFactory.GetType().Name);
 
             _dwriteFactory = new SharpDX.DirectWrite.Factory1(SharpDX.DirectWrite.FactoryType.Shared);
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 4");
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 4_1: " + _dwriteFactory.GetType().Name);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 4_1:  2D type " + _dwriteFactory.GetType().Name);
 
             _wicFactory = new SharpDX.WIC.ImagingFactory2();
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 5");
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 5_1: " + _wicFactory.GetType().Name);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceIndependentResources 5_1:  2D type " + _wicFactory.GetType().Name);
 
         }
 
@@ -314,9 +314,9 @@ namespace Microsoft.Xna.Framework.Graphics
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 2");
 
             // Windows requires BGRA support out of DX.
-            var creationFlags = SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport;
+            //var creationFlags = SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport|SharpDX.Direct3D11.DeviceCreationFlags.Debug;
 #if DEBUG
-            creationFlags |= SharpDX.Direct3D11.DeviceCreationFlags.Debug;
+            //   creationFlags |= SharpDX.Direct3D11.DeviceCreationFlags.Debug; 
 #endif
 
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 3");
@@ -337,56 +337,212 @@ namespace Microsoft.Xna.Framework.Graphics
             GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 4");
 
             var driverType = GraphicsAdapter.UseReferenceDevice ? DriverType.Reference : DriverType.Hardware;
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 4_1: driver type: " + driverType.ToString());
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 4_2: creation flags: " + driverType.ToString());
 
-#if DEBUG
+// TODO ROPO #if DEBUG
             try
             {
-#endif
-                // TODO ROPO
+//#endif  
+                _d3dDevice = null;
+
+                // try 0: different device constructor
                 // Create the Direct3D device.
-                using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, creationFlags, featureLevels.ToArray()))
+                if (_d3dDevice == null)
                 {
-                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5");
+                    try
+                    {
+                        using (var defaultDevice = new SharpDX.Direct3D11.Device(GraphicsAdapter.DefaultAdapter.GetAdapter(),
+                            SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport | DeviceCreationFlags.Debug,
+                            featureLevels.ToArray()))
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try0");
 
-                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0: " + defaultDevice.GetType().Name);
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try0: " + defaultDevice.GetType().Name);
 
-                    _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
-                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1");
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try0");
 
-                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2: " + _d3dDevice.GetType().Name);
-
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0: " + _d3dDevice.GetType().Name);
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0 ex: " + e.ToString());
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0 ex: " + e.StackTrace);
+                    }
                 }
+
+                // try 0_1: different device constructor, no debug
+                // Create the Direct3D device.
+                if (_d3dDevice == null)
+                {
+                    try
+                    {
+                        using (var defaultDevice = new SharpDX.Direct3D11.Device(GraphicsAdapter.DefaultAdapter.GetAdapter(),
+                SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport,
+                featureLevels.ToArray()))
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try0_1");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try0_1 def d3d device: " + defaultDevice.GetType().Name);
+
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try0_1");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0_1 d3d device: " + _d3dDevice.GetType().Name);
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0_1 ex: " + e.ToString());
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try0_1 ex: " + e.StackTrace);
+                    }
+                }
+
+                // try 1: a debug device
+                // Create the Direct3D device.
+                if (_d3dDevice == null)
+                {
+                    try
+                    {
+                        using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport | SharpDX.Direct3D11.DeviceCreationFlags.Debug, featureLevels.ToArray()))
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0 def d3d device: " + defaultDevice.GetType().Name);
+
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2 d3d device: " + _d3dDevice.GetType().Name);
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2 ex: " + e.ToString());
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2 ex: " + e.StackTrace);
+                    }
+                }
+
+                // try 2: no debug device
+                if (_d3dDevice == null)
+                {
+                    try
+                    {
+                        using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport, featureLevels.ToArray()))
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_try2");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try2: def d3d device " + defaultDevice.GetType().Name);
+
+                            _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_1_try2");
+
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try2: d3d device " + _d3dDevice.GetType().Name);
+
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try2 ex: " + e.ToString());
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try2 ex: " + e.StackTrace);
+                    }
+                }
+
+
+                // try 3: swap chain + device in one constructor
+                if (_d3dDevice == null)
+                {
+                    try
+                    {
+                        var desc = new SharpDX.DXGI.SwapChainDescription()
+                        {
+                            // Automatic sizing 
+                            Usage = SharpDX.DXGI.Usage.RenderTargetOutput,
+                            BufferCount = 2,
+                            SwapEffect = SharpDXHelper.ToSwapEffect(PresentationParameters.PresentationInterval),
+                        };
+
+                        Adapter1 adapter = GraphicsAdapter.DefaultAdapter.GetAdapter();
+                        SharpDX.Direct3D11.Device dev = null;
+                        SwapChain swapChain = null;
+                        SharpDX.Direct3D11.Device.CreateWithSwapChain(adapter,
+                            SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport, desc, out dev, out swapChain);
+
+
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try3: " + (dev != null) + ", " + (swapChain != null));
+
+                        if (dev != null)
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try3 dev: " + dev.GetType().Name);
+                        }
+                        if (swapChain != null)
+                        {
+                            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_0_try3 swap: " + swapChain.GetType().Name);
+                        }
+
+                    }
+                    catch (Exception e)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try3 ex: " + e.ToString());
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 5_2_try3 ex: " + e.StackTrace);
+                    }
+                }
+
+
 
                 // Necessary to enable video playback
                 var multithread = _d3dDevice.QueryInterface<SharpDX.Direct3D.DeviceMultithread>();
                 multithread.SetMultithreadProtected(true);
                 GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6: " + multithread.GetType().Name);
 
-#if DEBUG
+// TODO ROPO #if DEBUG
             }
             catch (SharpDXException)
             {
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_1 ex");
+
                 // Try again without the debug flag.  This allows debug builds to run
                 // on machines that don't have the debug runtime installed.
-                creationFlags &= ~SharpDX.Direct3D11.DeviceCreationFlags.Debug;
-                using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, creationFlags, featureLevels.ToArray()))
+                // creationFlags &= ~SharpDX.Direct3D11.DeviceCreationFlags.Debug; TODO ROPO
+                using (var defaultDevice = new SharpDX.Direct3D11.Device(driverType, SharpDX.Direct3D11.DeviceCreationFlags.BgraSupport, featureLevels.ToArray()))
+                {
+                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_2 ex: " + (defaultDevice != null));
+                    if (defaultDevice != null)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_3 ex: " + defaultDevice.GetType().Name);
+                    }
                     _d3dDevice = defaultDevice.QueryInterface<SharpDX.Direct3D11.Device2>();
+
+                    GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_4 ex: " + (_d3dDevice != null));
+
+                    if (_d3dDevice != null)
+                    {
+                        GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_5 ex: " + _d3dDevice.GetType().Name);
+                    }
+                }
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 6_6 ex");
+
             }
-#endif
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 7: " + _d3dDevice.GetType().Name);
+//#endif
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 7: d3d device type " + _d3dDevice.GetType().Name);
 
             // Get Direct3D 11.1 context
             _d3dContext = _d3dDevice.ImmediateContext.QueryInterface<SharpDX.Direct3D11.DeviceContext2>();
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8 " + _d3dContext.GetType().Name);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8: d3d device context type " + _d3dContext.GetType().Name);
 
             // Create the Direct2D device.
-            using (var dxgiDevice = _d3dDevice.QueryInterface<SharpDX.DXGI.Device3>())
+            using (var dxgiDevice = _d3dDevice.QueryInterface<SharpDX.DXGI.Device>())
             {
-                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8_1 " + dxgiDevice.GetType().Name);
+                GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 8_1: dxgi device type " + dxgiDevice.GetType().Name);
 
                 _d2dDevice = new SharpDX.Direct2D1.Device1(_d2dFactory, dxgiDevice);
             }
-            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 9 " + _d2dDevice.GetType().Name);
+            GraphicsAdapter.logToFileBlocking("GraphicsDevice.DirectX::CreateDeviceResources 9: 2d type " + _d2dDevice.GetType().Name);
 
 
             // Create Direct2D context
@@ -398,8 +554,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
         }
 
-     
-     
+
+
         internal void CreateSizeDependentResourcesVanilla()
         {
             const string NAME = "CreateSizeDependentResourcesVanilla";
@@ -532,7 +688,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 // TODO
                 // First, retrieve the underlying DXGI Device from the D3D Device.
                 // Creates the swap chain 
-                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device3>())
+                using (var dxgiDevice2 = _d3dDevice.QueryInterface<SharpDX.DXGI.Device2>())
                 using (var dxgiAdapter = dxgiDevice2.Adapter)
                 using (var dxgiFactory2 = dxgiAdapter.GetParent<SharpDX.DXGI.Factory2>())
                 {
@@ -1132,7 +1288,7 @@ namespace Microsoft.Xna.Framework.Graphics
                     // ropo
                     //_swapChain.Present(1, PresentFlags.None, parameters);
                     _swapChain.Present(1, PresentFlags.None);
-                   // ((SwapChain1)_swapChain)
+                    // ((SwapChain1)_swapChain)
                 }
             }
             catch (SharpDX.SharpDXException)
