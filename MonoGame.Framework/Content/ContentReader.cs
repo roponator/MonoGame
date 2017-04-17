@@ -1,7 +1,7 @@
 // MIT License - Copyright (C) The Mono.Xna Team
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
-
+//#define ROPO_PRINT
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -68,12 +68,18 @@ namespace Microsoft.Xna.Framework.Content
         {
             InitializeTypeReaders();
 
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);
+#endif
+
             // Read primary object
             object result = ReadObject<T>();
 
             // Read shared resources
             ReadSharedResources();
-            
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset end " + typeof (T).Name);
+#endif
             return result;
         }
 
@@ -175,21 +181,31 @@ namespace Microsoft.Xna.Framework.Content
             return InnerReadObject(existingInstance);
         }
 
-        private T InnerReadObject<T>(T existingInstance)
+        private T InnerReadObject<T> (T existingInstance)
         {
-            var typeReaderIndex = Read7BitEncodedInt();
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
+#endif
+
+            var typeReaderIndex = Read7BitEncodedInt ();
             if (typeReaderIndex == 0)
                 return existingInstance;
 
             if (typeReaderIndex > typeReaders.Length)
-                throw new ContentLoadException("Incorrect type reader index found!");
+                throw new ContentLoadException ("Incorrect type reader index found!");
 
             var typeReader = typeReaders[typeReaderIndex - 1];
-            var result = (T)typeReader.Read(this, existingInstance);
 
-            RecordDisposable(result);
-
-            return result;
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 2 " + typeof (T).Name);
+#endif
+            T res = (T)typeReader.Read (this, existingInstance);
+               
+            RecordDisposable(res);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject end " + typeof (T).Name);
+#endif
+            return res;
         }
 
         public T ReadObject<T>(ContentTypeReader typeReader, T existingInstance)

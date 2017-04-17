@@ -89,7 +89,7 @@ namespace Microsoft.Xna.Framework {
 		public event EventHandler<EventArgs> OrientationChanged;
 		public event EventHandler<EventArgs> ScreenDeviceNameChanged;
 
-#if WINDOWS || WINDOWS_UAP || DESKTOPGL|| ANGLE
+#if WINDOWS || WINDOWS_UAP || DESKTOPGL || ANGLE
 
         /// <summary>
 		/// Use this event to retrieve text for objects like textbox's.
@@ -104,9 +104,15 @@ namespace Microsoft.Xna.Framework {
 		public event EventHandler<TextInputEventArgs> TextInput;
 #endif
 
-		#endregion Events
+        #endregion Events
 
-		public abstract void BeginScreenDeviceChange (bool willBeFullScreen);
+        public virtual void log (String tag, String text)
+        {
+
+
+        }
+
+        public abstract void BeginScreenDeviceChange (bool willBeFullScreen);
 
 		public abstract void EndScreenDeviceChange (
 			string screenDeviceName, int clientWidth, int clientHeight);

@@ -67,8 +67,13 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class Texture2D : Texture
     {
+        static System.Diagnostics.Stopwatch stopwatchLoad = new System.Diagnostics.Stopwatch ();
+
         private void PlatformConstruct(int width, int height, bool mipmap, SurfaceFormat format, SurfaceType type, bool shared)
         {
+            stopwatchLoad.Reset ();
+            stopwatchLoad.Start ();
+
             this.glTarget = TextureTarget.Texture2D;
 
             Threading.BlockOnUIThread(() =>
@@ -138,10 +143,19 @@ namespace Microsoft.Xna.Framework.Graphics
                 GraphicsExtensions.CheckGLError();
 
             });
+
+            stopwatchLoad.Stop ();
+#if ANDROID
+           Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_PlatformConstruct", stopwatchLoad.ElapsedMilliseconds);
+#endif
+
         }
 
         private void PlatformSetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
+            stopwatchLoad.Reset ();
+            stopwatchLoad.Start ();
+
             Threading.BlockOnUIThread(() =>
             {
                 var elementSizeInByte = ReflectionHelpers.SizeOf<T>.Get();
@@ -191,10 +205,19 @@ namespace Microsoft.Xna.Framework.Graphics
                 GL.Finish();
 #endif
             });
+
+            stopwatchLoad.Stop ();
+#if ANDROID
+            Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_SetData", stopwatchLoad.ElapsedMilliseconds);
+#endif
+
         }
 
         private void PlatformGetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
+            stopwatchLoad.Reset ();
+            stopwatchLoad.Start ();
+
             Threading.EnsureUIThread();
 
 #if GLES
@@ -264,10 +287,19 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
             }
 #endif
-            }
+
+            stopwatchLoad.Stop ();
+#if ANDROID
+            Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_GetData", stopwatchLoad.ElapsedMilliseconds);
+#endif
+
+        }
 
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Stream stream)
         {
+            stopwatchLoad.Reset ();
+            stopwatchLoad.Start ();
+
 #if IOS || MONOMAC
 
 #if IOS
@@ -291,6 +323,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 #endif
 #if ANDROID
+          
             using (Bitmap image = BitmapFactory.DecodeStream(stream, null, new BitmapFactory.Options
             {
                 InScaled = false,
@@ -300,7 +333,15 @@ namespace Microsoft.Xna.Framework.Graphics
                 InInputShareable = true,
             }))
             {
-                return PlatformFromStream(graphicsDevice, image);
+                Texture2D tex= PlatformFromStream(graphicsDevice, image);
+
+                stopwatchLoad.Stop ();
+#if ANDROID
+                Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_FromStream", stopwatchLoad.ElapsedMilliseconds);
+#endif
+
+
+                return tex;
             }
 #endif
 #if DESKTOPGL || ANGLE
@@ -330,6 +371,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 image.Dispose();
             }
 #endif
+
+          
         }
 
 #if IOS
@@ -417,6 +460,9 @@ namespace Microsoft.Xna.Framework.Graphics
 #elif ANDROID
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Bitmap image)
         {
+            stopwatchLoad.Reset ();
+            stopwatchLoad.Start ();
+
             var width = image.Width;
             var height = image.Height;
 
@@ -447,6 +493,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 texture = new Texture2D(graphicsDevice, width, height, false, SurfaceFormat.Color);
                 texture.SetData<int>(pixels);
             });
+
 
             return texture;
         }

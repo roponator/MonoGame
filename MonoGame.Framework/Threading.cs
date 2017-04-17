@@ -24,7 +24,7 @@ using System.Windows;
 
 namespace Microsoft.Xna.Framework
 {
-    internal class Threading
+    public class Threading
     {
         public const int kMaxWaitForUIThread = 750; // In milliseconds
 
@@ -187,7 +187,7 @@ namespace Microsoft.Xna.Framework
         /// <summary>
         /// Runs all pending actions.  Must be called from the UI thread.
         /// </summary>
-        internal static void Run()
+        public static void Run()
         {
             EnsureUIThread();
 

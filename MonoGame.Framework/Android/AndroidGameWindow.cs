@@ -14,6 +14,38 @@ namespace Microsoft.Xna.Framework
     [CLSCompliant(false)]
     public class AndroidGameWindow : GameWindow, IDisposable
     {
+        public static System.Diagnostics.Stopwatch stopwatch_onCreate_AndroidGameWindow_OnUpdateFrame = new System.Diagnostics.Stopwatch ();
+        public static System.Diagnostics.Stopwatch stopwatch_prepare = new System.Diagnostics.Stopwatch ();
+
+        public static void StopRunningAndPrintStopwatch (System.Diagnostics.Stopwatch sw, String text)
+        {
+            if (sw.IsRunning)
+            {
+                sw.Stop ();
+#if ANDROID
+                Game.Instance.Window.log ("ropo_stopwatch", text + ": " + sw.ElapsedMilliseconds);
+#endif
+            }
+        }
+
+        static bool threadReadyForStopwatch = false;
+
+       public const bool useHighPriorityBench = true;
+        public static void prepareForBenchmarkGameThread ()
+        {
+            if (useHighPriorityBench)
+            {
+#if ANDROID
+                stopwatch_prepare.Start ();
+                // System.Diagnostics.Debug.WriteLine ("ropo_stopwatch: prepareForBenchmark");
+                System.Diagnostics.Process.GetCurrentProcess ().ProcessorAffinity = new IntPtr (3);
+                System.Diagnostics.Process.GetCurrentProcess ().PriorityClass = System.Diagnostics.ProcessPriorityClass.High;
+                System.Threading.Thread.CurrentThread.Priority = System.Threading.ThreadPriority.Highest;
+                StopRunningAndPrintStopwatch (stopwatch_prepare, "prepareForBenchmarkGameThread");
+#endif
+            }
+        }
+
         internal MonoGameAndroidGameView GameView { get; private set; }
         internal IResumeManager Resumer;
 
@@ -24,6 +56,10 @@ namespace Microsoft.Xna.Framework
 
         public override IntPtr Handle { get { return IntPtr.Zero; } }
 
+        public override void log(String tag,String text)
+        {
+            Android.Util.Log.Info (tag, text);
+        }
 
         public void SetResumer(IResumeManager resumer)
         {
@@ -66,6 +102,14 @@ namespace Microsoft.Xna.Framework
 
         private void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
         {
+            StopRunningAndPrintStopwatch (stopwatch_onCreate_AndroidGameWindow_OnUpdateFrame, "onCreate->AndroidGameWindow::OnUpdateFrame");
+
+            if(threadReadyForStopwatch == false)
+            {
+                threadReadyForStopwatch = true;
+              //  prepareForBenchmarkGameThread ();
+            }
+
             if (!GameView.GraphicsContext.IsCurrent)
                 GameView.MakeCurrent();
 
