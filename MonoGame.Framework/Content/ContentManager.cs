@@ -240,6 +240,9 @@ namespace Microsoft.Xna.Framework.Content
             {
                 var assetPath = Path.Combine (RootDirectory, assetName) + ".xnb";
 
+                 System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+
+
                 // This is primarily for editor support. 
                 // Setting the RootDirectory to an absolute path is useful in editor
                 // situations, but TitleContainer can ONLY be passed relative paths.                
@@ -248,15 +251,26 @@ namespace Microsoft.Xna.Framework.Content
                     stream = File.OpenRead(assetPath);                
                 else
 #endif
+                stopwatchReadAsset.Reset ();
+                stopwatchReadAsset.Start ();
+     
                 stream = TitleContainer.OpenStream (assetPath);
+
+                stopwatchReadAsset.Stop ();
+                addTime ("ContentManager_OpenStream_OpenStream: "+ assetName, stopwatchReadAsset.ElapsedMilliseconds);
 #if ANDROID
                 // Read the asset into memory in one go. This results in a ~50% reduction
                 // in load times on Android due to slow Android asset streams.
+                stopwatchReadAsset.Reset ();
+                stopwatchReadAsset.Start ();
                 MemoryStream memStream = new MemoryStream ();
                 stream.CopyTo (memStream);
                 memStream.Seek (0, SeekOrigin.Begin);
                 stream.Close ();
                 stream = memStream;
+
+                stopwatchReadAsset.Stop ();
+                addTime ("ContentManager_OpenStream_MemoryStream " + assetName, stopwatchReadAsset.ElapsedMilliseconds);
 #endif
             }
             catch (FileNotFoundException fileNotFound)
@@ -278,8 +292,7 @@ namespace Microsoft.Xna.Framework.Content
 
         }
 
-        public static System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-        public static Dictionary<String, long> times = new Dictionary<string, long> ();
+       public static Dictionary<String, long> times = new Dictionary<string, long> ();
         static object locky = new object ();
         public static void addTime (string key, long millis)
         {
@@ -314,7 +327,7 @@ namespace Microsoft.Xna.Framework.Content
             }
 
 
-#if ANDROID && ROPO_PRINT
+#if ANDROID
             Game.Instance.Window.log ("ropo_stopwatch", t);
 #endif
         }
@@ -399,14 +412,15 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
 #endif
 
-            System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
+                 System.Diagnostics.Stopwatch stopwatchOpenStream = new Stopwatch ();
 
-            // Try to load as XNB file
-            stopwatchReadAsset.Reset ();
-            stopwatchReadAsset.Start ();
+            stopwatchOpenStream.Reset ();
+            stopwatchOpenStream.Start ();
+                  
             var stream = OpenStream (assetName);
-            stopwatchReadAsset.Stop ();
-            addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+
+            stopwatchOpenStream.Stop ();
+            addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchOpenStream.ElapsedMilliseconds);
             T res = default (T);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
@@ -417,6 +431,7 @@ namespace Microsoft.Xna.Framework.Content
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
 #endif
+                System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
 
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
@@ -456,7 +471,7 @@ namespace Microsoft.Xna.Framework.Content
                     throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
 
                 res = (T)result;
-                e.Set ();
+           
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
