@@ -235,13 +235,12 @@ namespace Microsoft.Xna.Framework.Content
         protected virtual Stream OpenStream (string assetName)
         {
 
+             System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+           
             Stream stream;
             try
             {
                 var assetPath = Path.Combine (RootDirectory, assetName) + ".xnb";
-
-                 System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-
 
                 // This is primarily for editor support. 
                 // Setting the RootDirectory to an absolute path is useful in editor
@@ -253,7 +252,7 @@ namespace Microsoft.Xna.Framework.Content
 #endif
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
-     
+            
                 stream = TitleContainer.OpenStream (assetPath);
 
                 stopwatchReadAsset.Stop ();
@@ -270,7 +269,7 @@ namespace Microsoft.Xna.Framework.Content
                 stream = memStream;
 
                 stopwatchReadAsset.Stop ();
-                addTime ("ContentManager_OpenStream_MemoryStream " + assetName, stopwatchReadAsset.ElapsedMilliseconds);
+                addTime ("ContentManager_OpenStream_MemoryStream: " + assetName, stopwatchReadAsset.ElapsedMilliseconds);
 #endif
             }
             catch (FileNotFoundException fileNotFound)
@@ -412,15 +411,23 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
 #endif
 
-                 System.Diagnostics.Stopwatch stopwatchOpenStream = new Stopwatch ();
+            //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
+            // 
+            // Try to load as XNB file
 
-            stopwatchOpenStream.Reset ();
-            stopwatchOpenStream.Start ();
-                  
+            //  System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+            //  stopwatchReadAsset.Reset ();
+            //   stopwatchReadAsset.Start ();
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#endif
             var stream = OpenStream (assetName);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#endif
 
-            stopwatchOpenStream.Stop ();
-            addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchOpenStream.ElapsedMilliseconds);
+            //  stopwatchReadAsset.Stop ();
+            //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
             T res = default (T);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
@@ -432,7 +439,6 @@ namespace Microsoft.Xna.Framework.Content
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
 #endif
                 System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
                 BinaryReader xnbReader = new BinaryReader (stream);
@@ -471,7 +477,7 @@ namespace Microsoft.Xna.Framework.Content
                     throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
 
                 res = (T)result;
-           
+               // e.Set ();
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
