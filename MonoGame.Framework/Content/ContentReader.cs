@@ -83,6 +83,25 @@ namespace Microsoft.Xna.Framework.Content
             return result;
         }
 
+        internal void ReadAssetCallback<T> (ContentManager.ResCallback<T> onDone)
+        {
+            InitializeTypeReaders ();
+
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);
+#endif
+
+            // Read primary object
+            object result = ReadObject<T> ();
+
+            // Read shared resources
+            ReadSharedResources ();
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset end " + typeof (T).Name);
+#endif
+            return result;
+        }
+
         internal object ReadAsset<T>(T existingInstance)
         {
             InitializeTypeReaders();
