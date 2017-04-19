@@ -3,6 +3,7 @@
 // file 'LICENSE.txt', which is part of this source code package.
 
 //#define ROPO_PRINT
+//#define ROPO_ADD_TIME
 
 using System;
 using System.Collections.Generic;
@@ -232,10 +233,65 @@ namespace Microsoft.Xna.Framework.Content
             return result;
         }
 
+        static object lockLoadedAssets = new object ();
+
+        public virtual void LoadCallback<T> (string assetName, ResCallback<T> onDone)
+        {
+            if (string.IsNullOrEmpty (assetName))
+            {
+                throw new ArgumentNullException ("assetName");
+            }
+            if (disposed)
+            {
+                throw new ObjectDisposedException ("ContentManager");
+            }
+
+    
+            // On some platforms, name and slash direction matter.
+            // We store the asset by a /-seperating key rather than how the
+            // path to the file was passed to us to avoid
+            // loading "content/asset1.xnb" and "content\\ASSET1.xnb" as if they were two 
+            // different files. This matches stock XNA behavior.
+            // The dictionary will ignore case differences
+            var key = assetName.Replace ('\\', '/');
+
+            // Check for a previously loaded asset first
+            object asset = null;
+            bool res = false;
+
+            lock (lockLoadedAssets)
+            {
+                loadedAssets.TryGetValue (key, out asset); // NOTE: PUT THIS AND THE CALL loadedAssets[key] = result; INTO ONE LARGE LOCK, IN CASE A DIFFERENT SAME NAMED RESOURCES WOULD BE LOADED?
+            }
+
+            if (res)
+            {
+                onDone ((T)asset);
+            }
+            else
+            {
+                ResCallback<T> intermediaryCallback = (callbackResult) =>
+                {
+                    // store to manager first, then continue calling users callback
+                    lock(lockLoadedAssets)
+                    {
+                        loadedAssets[key] = callbackResult; // LOCK THIS!
+                    }
+
+                    onDone (callbackResult);
+                };
+                // Load the asset.
+                ReadAssetCallback<T> (assetName, null, intermediaryCallback);
+            }
+
+           
+        
+        }
+
         protected virtual Stream OpenStream (string assetName)
         {
 
-             System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+             //System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
            
             Stream stream;
             try
@@ -250,26 +306,28 @@ namespace Microsoft.Xna.Framework.Content
                     stream = File.OpenRead(assetPath);                
                 else
 #endif
-                stopwatchReadAsset.Reset ();
-                stopwatchReadAsset.Start ();
+              //  stopwatchReadAsset.Reset ();
+              //  stopwatchReadAsset.Start ();
             
                 stream = TitleContainer.OpenStream (assetPath);
 
-                stopwatchReadAsset.Stop ();
-                addTime ("ContentManager_OpenStream_OpenStream: "+ assetName, stopwatchReadAsset.ElapsedMilliseconds);
+                //    stopwatchReadAsset.Stop ();
+                //    addTime ("ContentManager_OpenStream_OpenStream: "+ assetName, stopwatchReadAsset.ElapsedMilliseconds);
 #if ANDROID
                 // Read the asset into memory in one go. This results in a ~50% reduction
                 // in load times on Android due to slow Android asset streams.
-                stopwatchReadAsset.Reset ();
-                stopwatchReadAsset.Start ();
+             
+                //   stopwatchReadAsset.Reset ();
+                //   stopwatchReadAsset.Start ();
+
                 MemoryStream memStream = new MemoryStream ();
                 stream.CopyTo (memStream);
                 memStream.Seek (0, SeekOrigin.Begin);
                 stream.Close ();
                 stream = memStream;
 
-                stopwatchReadAsset.Stop ();
-                addTime ("ContentManager_OpenStream_MemoryStream: " + assetName, stopwatchReadAsset.ElapsedMilliseconds);
+             //   stopwatchReadAsset.Stop ();
+             //   addTime ("ContentManager_OpenStream_MemoryStream: " + assetName, stopwatchReadAsset.ElapsedMilliseconds);
 #endif
             }
             catch (FileNotFoundException fileNotFound)
@@ -292,13 +350,13 @@ namespace Microsoft.Xna.Framework.Content
         }
 
        public static Dictionary<String, long> times = new Dictionary<string, long> ();
-        static object locky = new object ();
+        static object lockyTimer = new object ();
         public static void addTime (string key, long millis)
         {
 #if ROPO_PRINT
             Android.Util.Log.Info ("ropo_stopwatch", key);
 #endif
-            lock (locky)
+            lock (lockyTimer)
             {
                 if (times.ContainsKey (key) == false)
                 {
@@ -380,6 +438,116 @@ namespace Microsoft.Xna.Framework.Content
 
        
        static List<MyTask> uiThreadTasks = new List<MyTask> ();
+     //   static volatile int atom = 0;
+
+     /*   protected T ReadAsset<T> (string assetName, Action<IDisposable> recordDisposableObject)
+        {
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
+#endif
+            if (string.IsNullOrEmpty (assetName))
+            {
+                throw new ArgumentNullException ("assetName");
+            }
+            if (disposed)
+            {
+                throw new ObjectDisposedException ("ContentManager");
+            }
+
+            string originalAssetName = assetName;
+            object result = null;
+
+            if (this.graphicsDeviceService == null)
+            {
+                this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
+                if (this.graphicsDeviceService == null)
+                {
+                    throw new InvalidOperationException ("No Graphics Device Service");
+                }
+            }
+
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
+#endif
+
+            //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
+            // 
+            // Try to load as XNB file
+
+      
+            var stream = OpenStream (assetName);
+
+            //  stopwatchReadAsset.Stop ();
+            //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+            T res = default (T);
+            Action a = new Action (() =>
+            {
+
+#if ANDROID && ROPO_PRINT
+                Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
+#endif
+                System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+                stopwatchReadAsset.Reset ();
+                stopwatchReadAsset.Start ();
+                BinaryReader xnbReader = new BinaryReader (stream);
+                stopwatchReadAsset.Stop ();
+                addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+
+                {
+                    stopwatchReadAsset.Reset ();
+                    stopwatchReadAsset.Start ();
+                    ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
+                    stopwatchReadAsset.Stop ();
+                    addTime ("ContentManager_GetContentReaderFromXnb_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+
+#if ANDROID && ROPO_PRINT
+                    Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
+#endif
+                    {
+                        stopwatchReadAsset.Reset ();
+                        stopwatchReadAsset.Start ();
+                        result = reader.ReadAsset<T> ();
+                        stopwatchReadAsset.Stop ();
+                        addTime ("ContentManager_ReadAsset_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+
+#if ANDROID && ROPO_PRINT
+                        Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
+#endif
+                        if (result is GraphicsResource)
+                            ((GraphicsResource)result).Name = originalAssetName;
+                    }
+                    reader.Close ();
+                }
+                xnbReader.Close ();
+
+
+                if (result == null)
+                    throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
+                res = (T)result;
+            });
+
+           
+            if (Threading.IsOnUIThread () == false)
+            {
+                System.Threading.ManualResetEvent ev = new System.Threading.ManualResetEvent (false);
+
+                a ();
+                ev.Set();
+
+                ev.WaitOne ();
+            }
+            else
+            {
+                a ();
+            }
+
+            if (res == null)
+            {
+                Game.Instance.Window.log ("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
+
+            }
+            return res;
+        }*/
 
         protected T ReadAsset<T> (string assetName, Action<IDisposable> recordDisposableObject)
         {
@@ -433,34 +601,49 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
 
-            Action a = new Action (() => 
+            Action a = new Action (() =>
             {
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
 #endif
+
+#if ROPO_ADD_TIME
                 System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
+#endif
                 BinaryReader xnbReader = new BinaryReader (stream);
+#if ROPO_ADD_TIME
                 stopwatchReadAsset.Stop ();
                 addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
 
                 {
+#if ROPO_ADD_TIME
                     stopwatchReadAsset.Reset ();
                     stopwatchReadAsset.Start ();
+#endif
                     ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
+
+#if ROPO_ADD_TIME
                     stopwatchReadAsset.Stop ();
                     addTime ("ContentManager_GetContentReaderFromXnb_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
 
 #if ANDROID && ROPO_PRINT
                     Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
 #endif
                     {
+#if ROPO_ADD_TIME
                         stopwatchReadAsset.Reset ();
                         stopwatchReadAsset.Start ();
+#endif
                         result = reader.ReadAsset<T> ();
+
+#if ROPO_ADD_TIME
                         stopwatchReadAsset.Stop ();
                         addTime ("ContentManager_ReadAsset_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
 
 #if ANDROID && ROPO_PRINT
                         Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
@@ -475,9 +658,8 @@ namespace Microsoft.Xna.Framework.Content
 
                 if (result == null)
                     throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
-
                 res = (T)result;
-               // e.Set ();
+                // e.Set ();
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
@@ -496,11 +678,15 @@ namespace Microsoft.Xna.Framework.Content
                 lock (uiThreadTasks)
                 {
                     uiThreadTasks.Add (t);
+                    //   int n = System.Threading.Interlocked.Add (ref atom, 1);
+#if ANDROID
+                    //  Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset # task: "+n);
+#endif
                 }
 
-               
+
                 while (t.isFinished == false) ;
-               
+
             }
             else
             {
@@ -510,8 +696,163 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset end: " + typeof (T).Name);
 #endif
 
+            if (res == null)
+            {
+                Game.Instance.Window.log ("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
 
+            }
             return res;
+        }
+
+        public delegate void ResCallback<T> (T resule);
+
+        protected void ReadAssetCallback<T> (string assetName, Action<IDisposable> recordDisposableObject, ResCallback<T> onDone)
+        {
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
+#endif
+            if (string.IsNullOrEmpty (assetName))
+            {
+                throw new ArgumentNullException ("assetName");
+            }
+            if (disposed)
+            {
+                throw new ObjectDisposedException ("ContentManager");
+            }
+
+            string originalAssetName = assetName;
+            object result = null;
+
+            if (this.graphicsDeviceService == null)
+            {
+                this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
+                if (this.graphicsDeviceService == null)
+                {
+                    throw new InvalidOperationException ("No Graphics Device Service");
+                }
+            }
+
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
+#endif
+
+            //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
+            // 
+            // Try to load as XNB file
+
+            //  System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+            //  stopwatchReadAsset.Reset ();
+            //   stopwatchReadAsset.Start ();
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#endif
+            var stream = OpenStream (assetName);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#endif
+
+            //  stopwatchReadAsset.Stop ();
+            //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+            T res = default (T);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#endif
+
+            Action a = new Action (() =>
+            {
+#if ANDROID && ROPO_PRINT
+                Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
+#endif
+#if ROPO_ADD_TIME
+                System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
+                stopwatchReadAsset.Reset ();
+                stopwatchReadAsset.Start ();
+#endif
+                BinaryReader xnbReader = new BinaryReader (stream);
+                #if ROPO_ADD_TIME
+                stopwatchReadAsset.Stop ();
+                addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
+                {
+                    #if ROPO_ADD_TIME
+                    stopwatchReadAsset.Reset ();
+                    stopwatchReadAsset.Start ();
+#endif
+                    ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
+
+                    #if ROPO_ADD_TIME
+                    stopwatchReadAsset.Stop ();
+                    addTime ("ContentManager_GetContentReaderFromXnb_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
+#if ANDROID && ROPO_PRINT
+                    Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
+#endif
+                    {
+                        #if ROPO_ADD_TIME
+                        stopwatchReadAsset.Reset ();
+                        stopwatchReadAsset.Start ();
+#endif
+                        result = reader.ReadAsset<T> ();
+                        #if ROPO_ADD_TIME
+                        stopwatchReadAsset.Stop ();
+                        addTime ("ContentManager_ReadAsset_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
+#endif
+#if ANDROID && ROPO_PRINT
+                        Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
+#endif
+                        if (result is GraphicsResource)
+                            ((GraphicsResource)result).Name = originalAssetName;
+                    }
+                    reader.Close ();
+                }
+                xnbReader.Close ();
+
+
+                if (result == null)
+                    throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
+                res = (T)result;
+
+                if (res == null)
+                {
+                    Game.Instance.Window.log ("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
+
+                }
+                onDone (res);
+
+                // e.Set ();
+
+#if ANDROID && ROPO_PRINT
+                Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
+#endif
+
+            });
+
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 3");
+#endif
+
+            if (Threading.IsOnUIThread () == false)
+            {
+                MyTask t = new MyTask (a);
+
+                lock (uiThreadTasks)
+                {
+                    uiThreadTasks.Add (t);
+                    //   int n = System.Threading.Interlocked.Add (ref atom, 1);
+#if ANDROID
+                    //  Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset # task: "+n);
+#endif
+                }
+
+
+           //     while (t.isFinished == false) ;
+
+            }
+            else
+            {
+                a ();
+            }
+
         }
 
         private ContentReader GetContentReaderFromXnb (string originalAssetName, Stream stream, BinaryReader xnbReader, Action<IDisposable> recordDisposableObject)
