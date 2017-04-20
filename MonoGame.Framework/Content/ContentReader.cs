@@ -89,7 +89,7 @@ namespace Microsoft.Xna.Framework.Content
 
             ContentManager.ResTask newTask = new ContentManager.ResTask ();
 
-            ContentManager.ResCallback a = (_, outerCurrentTask) =>
+            ContentManager.ResCallback a = (_) =>
             {
 
 
@@ -97,38 +97,26 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);
 #endif
 
-                // Read primary object
-                object result = ReadObject<T> ();
+                ContentManager.ResCallback onInnerTaskDone = (taskRes) =>
+                {
+                    // Read shared resources
+                    ReadSharedResources ();
 
-                // Read shared resources
-                ReadSharedResources ();
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset end " + typeof (T).Name);
 #endif
 
-                ContentManager.ResTask nextTask = new ContentManager.ResTask (
-                    (callbackRes, innerCurrentTask) =>
-                    {
-                        int x = 0;
-                        int y = x;
-                    });
-
-                outerCurrentTask.SetNextTask (nextTask);
-
-                //outerCurrentTask.onExecute ((T)result, outerCurrentTask);
-
-                onDone ((T)result, outerCurrentTask);
+                    onDone ((T)taskRes);
+                };
+               
+                // Read primary object
+                InnerReadObjectCallback (default (T), onInnerTaskDone);
+ 
             };
+            a (null);
 
-            ContentManager.ResTask tasky = new ContentManager.ResTask ();
-
-           
-           // a (null,tasky);
-            //if(tasky.)
-            newTask.SetCallback (a);
-           // newTask.onExecute (null, newTask);
-
-            ContentManager.EnqueueResourceLoadingTask (newTask);
+            //newTask.SetCallback (a);
+            //ContentManager.EnqueueResourceLoadingTask (newTask);
         }
 
         internal object ReadAsset<T> (T existingInstance)
@@ -256,35 +244,42 @@ namespace Microsoft.Xna.Framework.Content
             return res;
         }
 
-        /*  private void InnerReadObjectCallback<T> (ContentManager.ResTask currentTask, T existingInstance, ContentManager.ResCallback<T> onDone)
-          {
-  #if ANDROID && ROPO_PRINT
-              Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
-  #endif
+        private void InnerReadObjectCallback<T> (T existingInstance, ContentManager.ResCallback onDone)
+        {
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
+#endif
 
-              var typeReaderIndex = Read7BitEncodedInt ();
-              if (typeReaderIndex == 0)
-              {
-                  onDone (existingInstance, currentTask);
-              }
+            var typeReaderIndex = Read7BitEncodedInt ();
+            if (typeReaderIndex == 0)
+            {
+                onDone (existingInstance);
+                return;
+            }
 
-              if (typeReaderIndex > typeReaders.Length)
-                  throw new ContentLoadException ("Incorrect type reader index found!");
+            if (typeReaderIndex > typeReaders.Length)
+                throw new ContentLoadException ("Incorrect type reader index found!");
 
-              var typeReader = typeReaders[typeReaderIndex - 1];
+            var typeReader = typeReaders[typeReaderIndex - 1];
 
-  #if ANDROID && ROPO_PRINT
-              Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 2 " + typeof (T).Name);
-  #endif
-              T res = (T)typeReader.Read (this, existingInstance);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 2 " + typeof (T).Name);
+#endif
 
-              RecordDisposable (res);
-  #if ANDROID && ROPO_PRINT
-              Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject end " + typeof (T).Name);
-  #endif
-              onDone (res,currentTask);
-          }
-          */
+            ContentManager.ResCallback intermed = (callbackRes) =>
+            {
+                RecordDisposable (callbackRes);
+#if ANDROID && ROPO_PRINT
+            Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject end " + typeof (T).Name);
+#endif
+
+                onDone (callbackRes);
+            };
+
+            //typeReader.Read (this, existingInstance);
+            typeReader.ReadCallback (this, existingInstance, intermed);          
+        }
+        
         public T ReadObject<T> (ContentTypeReader typeReader, T existingInstance)
         {
             if (!ReflectionHelpers.IsValueType (typeReader.TargetType))

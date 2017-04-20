@@ -2,6 +2,8 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
+//#define ROPO_TIMER
+
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -67,13 +69,16 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class Texture2D : Texture
     {
+#if ROPO_TIMER
         static System.Diagnostics.Stopwatch stopwatchLoad = new System.Diagnostics.Stopwatch ();
+#endif
 
         private void PlatformConstruct(int width, int height, bool mipmap, SurfaceFormat format, SurfaceType type, bool shared)
         {
+#if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
-
+#endif
             this.glTarget = TextureTarget.Texture2D;
 
             Threading.BlockOnUIThread(() =>
@@ -143,18 +148,21 @@ namespace Microsoft.Xna.Framework.Graphics
                 GraphicsExtensions.CheckGLError();
 
             });
-
+#if ROPO_TIMER
             stopwatchLoad.Stop ();
 #if ANDROID
            Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_PlatformConstruct", stopwatchLoad.ElapsedMilliseconds);
+#endif
 #endif
 
         }
 
         private void PlatformSetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
+            #if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
+#endif
 
             Threading.BlockOnUIThread(() =>
             {
@@ -205,30 +213,32 @@ namespace Microsoft.Xna.Framework.Graphics
                 GL.Finish();
 #endif
             });
-
+            #if ROPO_TIMER
             stopwatchLoad.Stop ();
 #if ANDROID
             Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_SetData", stopwatchLoad.ElapsedMilliseconds);
+#endif
 #endif
 
         }
 
         private void PlatformGetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
+            #if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
-
+#endif
             Threading.EnsureUIThread();
 
 #if GLES
             // TODO: check for for non renderable formats (formats that can't be attached to FBO)
 
             var framebufferId = 0;
-			#if (IOS || ANDROID)
+#if (IOS || ANDROID)
 			GL.GenFramebuffers(1, out framebufferId);
-			#else
+#else
             GL.GenFramebuffers(1, ref framebufferId);
-			#endif
+#endif
             GraphicsExtensions.CheckGLError();
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, framebufferId);
             GraphicsExtensions.CheckGLError();
@@ -288,17 +298,21 @@ namespace Microsoft.Xna.Framework.Graphics
             }
 #endif
 
+#if ROPO_TIMER
             stopwatchLoad.Stop ();
 #if ANDROID
             Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_GetData", stopwatchLoad.ElapsedMilliseconds);
+#endif
 #endif
 
         }
 
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Stream stream)
         {
+            #if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
+#endif
 
 #if IOS || MONOMAC
 
@@ -334,10 +348,11 @@ namespace Microsoft.Xna.Framework.Graphics
             }))
             {
                 Texture2D tex= PlatformFromStream(graphicsDevice, image);
-
+#if ROPO_TIMER
                 stopwatchLoad.Stop ();
 #if ANDROID
                 Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_FromStream", stopwatchLoad.ElapsedMilliseconds);
+#endif
 #endif
 
 
@@ -372,8 +387,8 @@ namespace Microsoft.Xna.Framework.Graphics
             }
 #endif
 
-          
-        }
+
+            }
 
 #if IOS
         [CLSCompliant(false)]
@@ -460,9 +475,10 @@ namespace Microsoft.Xna.Framework.Graphics
 #elif ANDROID
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Bitmap image)
         {
+            #if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
-
+#endif
             var width = image.Width;
             var height = image.Height;
 

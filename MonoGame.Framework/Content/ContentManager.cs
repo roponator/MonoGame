@@ -267,11 +267,11 @@ namespace Microsoft.Xna.Framework.Content
 
             if (res)
             {
-                onDone ((T)asset, null);
+                onDone ((T)asset);
             }
             else
             {
-                ResCallback intermediaryCallback = (callbackResult, currentTask) =>
+                ResCallback intermediaryCallback = (callbackResult) =>
                 {
                     // store to manager first, then continue calling users callback
                     lock (lockLoadedAssets)
@@ -279,7 +279,7 @@ namespace Microsoft.Xna.Framework.Content
                         loadedAssets[key] = callbackResult; // LOCK THIS!
                     }
 
-                    onDone (callbackResult, currentTask);
+                    onDone (callbackResult);
                 };
                 // Load the asset.
                 ReadAssetCallback<T> (assetName, null, intermediaryCallback);
@@ -398,7 +398,7 @@ namespace Microsoft.Xna.Framework.Content
             ResTask task = null;
             if (m_resourceLoadingTasks.TryDequeue (out task))
             {
-                task.onExecute (null, task); // executes task and adds new task to queue if needed
+                task.onExecute (null); // executes task and adds new task to queue if needed
                 return 1;
             }
             else
@@ -798,7 +798,7 @@ namespace Microsoft.Xna.Framework.Content
              MOVE THE ACTION ONE LEVEL DEEPER, SO THAT reader.ReadAsset does action call like this: reader.ReadAsset<T>(AsyncCallback)
              so that multithreading can be pushed on level down and conitnue so*/
 
-            ResCallback onFinishedReadingAsset = (result, currentTask) =>
+            ResCallback onFinishedReadingAsset = (result) =>
             {
                 object obj = result; // need so we can unsafely case below
                 if (obj is GraphicsResource)
@@ -813,12 +813,12 @@ namespace Microsoft.Xna.Framework.Content
                     throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
                 }
 
-                onDone (result, currentTask);
+                onDone (result);
             };
 
 
             reader.ReadAssetCallback<T> (onFinishedReadingAsset);
-
+         
 
 #if ANDROID && ROPO_PRINT
                         Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
@@ -845,13 +845,12 @@ namespace Microsoft.Xna.Framework.Content
 
 
         //  public delegate void ResCallback<T> (T result);
-        public delegate void ResCallback (object result, ResTask currentTask);
+        public delegate void ResCallback (object result);
 
         public class ResTask
         {
             public ResCallback onExecute = null;
-            bool wasCallbackSet = false;
-
+     
             public ResTask ()
             {
 
@@ -866,24 +865,7 @@ namespace Microsoft.Xna.Framework.Content
             public void SetCallback (ResCallback onExecute)
             {
                 this.onExecute = onExecute;
-                wasCallbackSet = true;
             }
-
-            public void SetNextTask (ResTask nextTask)
-            {
-                if (wasCallbackSet == false)
-                {
-                    throw new Exception ("you must call SetCallback first before calling this");
-                }
-
-                ResCallback actuallCallback = this.onExecute;
-                this.onExecute = (result, currentTask) =>
-                {
-                    actuallCallback (result, currentTask);
-                    EnqueueResourceLoadingTask (nextTask);
-                };
-            }
-
         }
 
         static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasks = new System.Collections.Concurrent.ConcurrentQueue<ResTask> ();
