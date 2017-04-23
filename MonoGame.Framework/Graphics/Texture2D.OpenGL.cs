@@ -159,14 +159,12 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private void PlatformSetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
-            #if ROPO_TIMER
-            stopwatchLoad.Reset ();
-            stopwatchLoad.Start ();
-#endif
 
-            Threading.BlockOnUIThread(() =>
-            {
-                var elementSizeInByte = ReflectionHelpers.SizeOf<T>.Get();
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+       
+            //  Threading.BlockOnUIThread(() =>
+            //  {
+            var elementSizeInByte = ReflectionHelpers.SizeOf<T>.Get();
                 var dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
                 // Use try..finally to make sure dataHandle is freed in case of an error
                 try
@@ -180,8 +178,9 @@ namespace Microsoft.Xna.Framework.Graphics
 
                     GL.BindTexture(TextureTarget.Texture2D, this.glTexture);
                     GraphicsExtensions.CheckGLError();
-
-                    if (glFormat == (PixelFormat)GLPixelFormat.CompressedTextureFormats)
+               
+             
+                if (glFormat == (PixelFormat)GLPixelFormat.CompressedTextureFormats)
                     {
                         GL.CompressedTexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y, rect.Width, rect.Height,
                             (PixelInternalFormat) glInternalFormat, elementCount * elementSizeInByte, dataPtr);
@@ -189,17 +188,25 @@ namespace Microsoft.Xna.Framework.Graphics
                     }
                     else
                     {
+                    sw.Reset();
+                    sw.Start();
+                
+                   //   GL.TexImage2D()
                         GL.TexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y,
-                            rect.Width, rect.Height, glFormat, glType, dataPtr);
-                        GraphicsExtensions.CheckGLError();
-                    }
+                         rect.Width, rect.Height, glFormat, glType, dataPtr);
+                     SEE DELLIS PR FOR MULTIPLE CONTEXTS!
+                 
+                    sw.Stop();
+                    Content.ContentManager.addTime("Texture2D::Part2", sw.ElapsedMilliseconds);
+                    GraphicsExtensions.CheckGLError();
+                    }             
 
 #if !ANDROID
                     GL.Finish();
                     GraphicsExtensions.CheckGLError();
 #endif
-                    // Restore the bound texture.
-                    GL.BindTexture(TextureTarget.Texture2D, prevTexture);
+                // Restore the bound texture.
+                GL.BindTexture(TextureTarget.Texture2D, prevTexture);
                     GraphicsExtensions.CheckGLError();
                 }
                 finally
@@ -212,7 +219,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 // before the main thread tries to use the texture.
                 GL.Finish();
 #endif
-            });
+          //  });
             #if ROPO_TIMER
             stopwatchLoad.Stop ();
 #if ANDROID

@@ -435,8 +435,12 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        // Using a stack instead of the queue so that the last added tasks gets processed first, otherwise due to the limit of max
+        // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
+        // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
+        // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
 
         static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
 
@@ -456,13 +460,13 @@ namespace Microsoft.Xna.Framework.Content
 
         public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
         {
-            m_resourceLoadingTasksMainThread.Enqueue(task);
+            m_resourceLoadingTasksMainThread.Push(task);
             m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
-            m_resourceLoadingTasksWorkerThread.Enqueue(task);
+            m_resourceLoadingTasksWorkerThread.Push(task);
             m_workerThreadEvent.Set();
         }
 
@@ -472,7 +476,7 @@ namespace Microsoft.Xna.Framework.Content
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
+            if (m_resourceLoadingTasksMainThread.TryPop(out task))
             {
                 task.Execute();
 
@@ -496,7 +500,7 @@ namespace Microsoft.Xna.Framework.Content
                      while (token.IsCancellationRequested == false)
                      {
                          ResTask resTask = null;
-                         if (m_resourceLoadingTasksWorkerThread.TryDequeue(out resTask))
+                         if (m_resourceLoadingTasksWorkerThread.TryPop(out resTask))
                          {
                              resTask.Execute();
                              ++numProcessedTasks;
@@ -508,6 +512,8 @@ namespace Microsoft.Xna.Framework.Content
 
                          m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
                      }
+                    OpenTK.Graphics.ES20.GL.Flush();
+                     OpenTK.Graphics.ES20.GL.Finish();
                      Game.Instance.Window.log("ropo", "Worker # tasks: " + numProcessedTasks);
                  }, token.Token);
                 // }, token.Token,System.Threading.Tasks.TaskCreationOptions.LongRunning, System.Threading.Tasks.TaskScheduler.Current);
@@ -899,9 +905,9 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
 #if ROPO_ADD_TIME
-            System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch();
-            stopwatchAction.Reset();
-            stopwatchAction.Start();
+          //  System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch();
+          //  stopwatchAction.Reset();
+          //  stopwatchAction.Start();
 #endif
 
 #if ANDROID && ROPO_PRINT
@@ -950,8 +956,8 @@ namespace Microsoft.Xna.Framework.Content
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
 #endif
 #if ROPO_ADD_TIME
-            stopwatchAction.Stop();
-            addTime("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
+          //  stopwatchAction.Stop();
+         //   addTime("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
 #endif
 
 

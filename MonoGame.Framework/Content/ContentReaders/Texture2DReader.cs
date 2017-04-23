@@ -1,7 +1,7 @@
 // MonoGame - Copyright (C) The MonoGame Team
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
-//#define ROPO_TIME
+#define ROPO_TIME
 using System;
 using Microsoft.Xna;
 using Microsoft.Xna.Framework;
@@ -216,6 +216,10 @@ namespace Microsoft.Xna.Framework.Content
         {
             Texture2D texture = null;
 
+#if ROPO_TIME
+            System.Diagnostics.Stopwatch sw1 = new System.Diagnostics.Stopwatch();
+            sw1.Start();
+#endif
             var surfaceFormat = (SurfaceFormat)reader.ReadInt32();
             int width = reader.ReadInt32();
             int height = reader.ReadInt32();
@@ -375,18 +379,28 @@ namespace Microsoft.Xna.Framework.Content
                         // Game.Instance.Window.log("ropo","format: " + System.Environment.CurrentManagedThreadId);
                     } // end for
 
-                    ContentManager.ResTask setDataTask = new ContentManager.ResTask((___) =>
-                    {
-                        texture = existingInstance ?? new Texture2D(reader.GraphicsDevice, width, height, levelCountOutput > 1, convertedFormat);
-                        
-                        for (int level = 0; level < levelCount; ++level)
+
+#if ROPO_TIME
+            sw1.Stop();
+            ContentManager.addTime("Texture2DReader::Read",sw1.ElapsedMilliseconds);
+
+#endif
+            ContentManager.ResTask setDataTask = new ContentManager.ResTask((___) =>
+            {
+
+                // 250ms for all textures, neglectable
+                texture = existingInstance ?? new Texture2D(reader.GraphicsDevice, width, height, levelCountOutput > 1, convertedFormat);
+
+                // 2000ms for entire for loop for all textures
+                for (int level = 0; level < levelCount; ++level)
                         {
                             texture.SetData(level, null, levelData[level], 0, levelDataSizeInBytes[level]);
                         }
 
-                        onDone(texture);
-                    });
 
+                onDone(texture);
+                    });
+        
                     ContentManager.EnqueueResourceLoadingTaskOnMainThread(setDataTask);
                
         }
