@@ -83,7 +83,7 @@ namespace Microsoft.Xna.Framework.Content
             return result;
         }
 
-        internal void ReadAssetCallback<T> (ContentManager.ResCallback onDone)
+        internal void ReadAssetCallback<T> (ContentManager.ResTask task, ContentManager.ResCallback onDone)
         {
             InitializeTypeReaders ();
 
@@ -110,7 +110,7 @@ namespace Microsoft.Xna.Framework.Content
                 };
                
                 // Read primary object
-                InnerReadObjectCallback (default (T), onInnerTaskDone);
+                InnerReadObjectCallback (task, default (T), onInnerTaskDone);
  
             };
             a (null);
@@ -244,7 +244,7 @@ namespace Microsoft.Xna.Framework.Content
             return res;
         }
 
-        private void InnerReadObjectCallback<T> (T existingInstance, ContentManager.ResCallback onDone)
+        private void InnerReadObjectCallback<T> (ContentManager.ResTask task, T existingInstance, ContentManager.ResCallback onDone)
         {
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
@@ -277,7 +277,7 @@ namespace Microsoft.Xna.Framework.Content
             };
 
             //typeReader.Read (this, existingInstance);
-            typeReader.ReadCallback (this, existingInstance, intermed);          
+            typeReader.ReadCallback (task, this, existingInstance, intermed);          
         }
         
         public T ReadObject<T> (ContentTypeReader typeReader, T existingInstance)

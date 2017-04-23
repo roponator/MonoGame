@@ -30,15 +30,15 @@ namespace Microsoft.Xna.Framework.Content
         private string _rootDirectory = string.Empty;
         private IServiceProvider serviceProvider;
         private IGraphicsDeviceService graphicsDeviceService;
-        private Dictionary<string, object> loadedAssets = new Dictionary<string, object> (StringComparer.OrdinalIgnoreCase);
-        private List<IDisposable> disposableAssets = new List<IDisposable> ();
+        private Dictionary<string, object> loadedAssets = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        private List<IDisposable> disposableAssets = new List<IDisposable>();
         private bool disposed;
         private byte[] scratchBuffer;
 
-        private static object ContentManagerLock = new object ();
-        private static List<WeakReference> ContentManagers = new List<WeakReference> ();
+        private static object ContentManagerLock = new object();
+        private static List<WeakReference> ContentManagers = new List<WeakReference>();
 
-        private static readonly List<char> targetPlatformIdentifiers = new List<char> ()
+        private static readonly List<char> targetPlatformIdentifiers = new List<char>()
         {
             'w', // Windows (DirectX)
             'x', // Xbox360
@@ -68,15 +68,15 @@ namespace Microsoft.Xna.Framework.Content
         };
 
 
-        static partial void PlatformStaticInit ();
+        static partial void PlatformStaticInit();
 
-        static ContentManager ()
+        static ContentManager()
         {
             // Allow any per-platform static initialization to occur.
-            PlatformStaticInit ();
+            PlatformStaticInit();
         }
 
-        private static void AddContentManager (ContentManager contentManager)
+        private static void AddContentManager(ContentManager contentManager)
         {
             lock (ContentManagerLock)
             {
@@ -86,17 +86,17 @@ namespace Microsoft.Xna.Framework.Content
                 for (int i = ContentManagers.Count - 1; i >= 0; --i)
                 {
                     var contentRef = ContentManagers[i];
-                    if (ReferenceEquals (contentRef.Target, contentManager))
+                    if (ReferenceEquals(contentRef.Target, contentManager))
                         contains = true;
                     if (!contentRef.IsAlive)
-                        ContentManagers.RemoveAt (i);
+                        ContentManagers.RemoveAt(i);
                 }
                 if (!contains)
-                    ContentManagers.Add (new WeakReference (contentManager));
+                    ContentManagers.Add(new WeakReference(contentManager));
             }
         }
 
-        private static void RemoveContentManager (ContentManager contentManager)
+        private static void RemoveContentManager(ContentManager contentManager)
         {
             lock (ContentManagerLock)
             {
@@ -105,13 +105,13 @@ namespace Microsoft.Xna.Framework.Content
                 for (int i = ContentManagers.Count - 1; i >= 0; --i)
                 {
                     var contentRef = ContentManagers[i];
-                    if (!contentRef.IsAlive || ReferenceEquals (contentRef.Target, contentManager))
-                        ContentManagers.RemoveAt (i);
+                    if (!contentRef.IsAlive || ReferenceEquals(contentRef.Target, contentManager))
+                        ContentManagers.RemoveAt(i);
                 }
             }
         }
 
-        internal static void ReloadGraphicsContent ()
+        internal static void ReloadGraphicsContent()
         {
             lock (ContentManagerLock)
             {
@@ -124,11 +124,11 @@ namespace Microsoft.Xna.Framework.Content
                     {
                         var contentManager = (ContentManager)contentRef.Target;
                         if (contentManager != null)
-                            contentManager.ReloadGraphicsAssets ();
+                            contentManager.ReloadGraphicsAssets();
                     }
                     else
                     {
-                        ContentManagers.RemoveAt (i);
+                        ContentManagers.RemoveAt(i);
                     }
                 }
             }
@@ -139,75 +139,75 @@ namespace Microsoft.Xna.Framework.Content
         // does not get called.
         // It gives your base class the opportunity to finalize.
         // Do not provide destructors in types derived from this class.
-        ~ContentManager ()
+        ~ContentManager()
         {
             // Do not re-create Dispose clean-up code here.
             // Calling Dispose(false) is optimal in terms of
             // readability and maintainability.
-            Dispose (false);
+            Dispose(false);
         }
 
-        public ContentManager (IServiceProvider serviceProvider)
+        public ContentManager(IServiceProvider serviceProvider)
         {
             if (serviceProvider == null)
             {
-                throw new ArgumentNullException ("serviceProvider");
+                throw new ArgumentNullException("serviceProvider");
             }
             this.serviceProvider = serviceProvider;
-            AddContentManager (this);
+            AddContentManager(this);
         }
 
-        public ContentManager (IServiceProvider serviceProvider, string rootDirectory)
+        public ContentManager(IServiceProvider serviceProvider, string rootDirectory)
         {
             if (serviceProvider == null)
             {
-                throw new ArgumentNullException ("serviceProvider");
+                throw new ArgumentNullException("serviceProvider");
             }
             if (rootDirectory == null)
             {
-                throw new ArgumentNullException ("rootDirectory");
+                throw new ArgumentNullException("rootDirectory");
             }
             this.RootDirectory = rootDirectory;
             this.serviceProvider = serviceProvider;
-            AddContentManager (this);
+            AddContentManager(this);
         }
 
-        public void Dispose ()
+        public void Dispose()
         {
-            Dispose (true);
+            Dispose(true);
             // Tell the garbage collector not to call the finalizer
             // since all the cleanup will already be done.
-            GC.SuppressFinalize (this);
+            GC.SuppressFinalize(this);
             // Once disposed, content manager wont be used again
-            RemoveContentManager (this);
+            RemoveContentManager(this);
         }
 
         // If disposing is true, it was called explicitly and we should dispose managed objects.
         // If disposing is false, it was called by the finalizer and managed objects should not be disposed.
-        protected virtual void Dispose (bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {
                 if (disposing)
                 {
-                    Unload ();
+                    Unload();
                 }
                 disposed = true;
             }
         }
 
-        public virtual T Load<T> (string assetName)
+        public virtual T Load<T>(string assetName)
         {
-            if (string.IsNullOrEmpty (assetName))
+            if (string.IsNullOrEmpty(assetName))
             {
-                throw new ArgumentNullException ("assetName");
+                throw new ArgumentNullException("assetName");
             }
             if (disposed)
             {
-                throw new ObjectDisposedException ("ContentManager");
+                throw new ObjectDisposedException("ContentManager");
             }
 
-            T result = default (T);
+            T result = default(T);
 
             // On some platforms, name and slash direction matter.
             // We store the asset by a /-seperating key rather than how the
@@ -215,11 +215,11 @@ namespace Microsoft.Xna.Framework.Content
             // loading "content/asset1.xnb" and "content\\ASSET1.xnb" as if they were two 
             // different files. This matches stock XNA behavior.
             // The dictionary will ignore case differences
-            var key = assetName.Replace ('\\', '/');
+            var key = assetName.Replace('\\', '/');
 
             // Check for a previously loaded asset first
             object asset = null;
-            if (loadedAssets.TryGetValue (key, out asset))
+            if (loadedAssets.TryGetValue(key, out asset))
             {
                 if (asset is T)
                 {
@@ -228,25 +228,24 @@ namespace Microsoft.Xna.Framework.Content
             }
 
             // Load the asset.
-            result = ReadAsset<T> (assetName, null);
+            result = ReadAsset<T>(assetName, null);
 
             loadedAssets[key] = result;
             return result;
         }
 
-        static object lockLoadedAssets = new object ();
+        static object lockLoadedAssets = new object();
 
-        public virtual void LoadCallback<T> (string assetName, ResCallback onDone)
+        public virtual void LoadCallback<T>(ContentManager.ResTask task, string assetName, ResCallback onDone)
         {
-            if (string.IsNullOrEmpty (assetName))
+            if (string.IsNullOrEmpty(assetName))
             {
-                throw new ArgumentNullException ("assetName");
+                throw new ArgumentNullException("assetName");
             }
             if (disposed)
             {
-                throw new ObjectDisposedException ("ContentManager");
+                throw new ObjectDisposedException("ContentManager");
             }
-
 
             // On some platforms, name and slash direction matter.
             // We store the asset by a /-seperating key rather than how the
@@ -254,7 +253,7 @@ namespace Microsoft.Xna.Framework.Content
             // loading "content/asset1.xnb" and "content\\ASSET1.xnb" as if they were two 
             // different files. This matches stock XNA behavior.
             // The dictionary will ignore case differences
-            var key = assetName.Replace ('\\', '/');
+            var key = assetName.Replace('\\', '/');
 
             // Check for a previously loaded asset first
             object asset = null;
@@ -262,12 +261,12 @@ namespace Microsoft.Xna.Framework.Content
 
             lock (lockLoadedAssets)
             {
-                loadedAssets.TryGetValue (key, out asset); // NOTE: PUT THIS AND THE CALL loadedAssets[key] = result; INTO ONE LARGE LOCK, IN CASE A DIFFERENT SAME NAMED RESOURCES WOULD BE LOADED?
+                loadedAssets.TryGetValue(key, out asset); // NOTE: PUT THIS AND THE CALL loadedAssets[key] = result; INTO ONE LARGE LOCK, IN CASE A DIFFERENT SAME NAMED RESOURCES WOULD BE LOADED?
             }
 
             if (res)
             {
-                onDone ((T)asset);
+                onDone((T)asset);
             }
             else
             {
@@ -279,17 +278,17 @@ namespace Microsoft.Xna.Framework.Content
                         loadedAssets[key] = callbackResult; // LOCK THIS!
                     }
 
-                    onDone (callbackResult);
+                    onDone(callbackResult);
                 };
                 // Load the asset.
-                ReadAssetCallback<T> (assetName, null, intermediaryCallback);
+                ReadAssetCallback<T>(task, assetName, null, intermediaryCallback);
             }
 
 
 
         }
 
-        protected virtual Stream OpenStream (string assetName)
+        protected virtual Stream OpenStream(string assetName)
         {
 
             //System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
@@ -297,7 +296,7 @@ namespace Microsoft.Xna.Framework.Content
             Stream stream;
             try
             {
-                var assetPath = Path.Combine (RootDirectory, assetName) + ".xnb";
+                var assetPath = Path.Combine(RootDirectory, assetName) + ".xnb";
 
                 // This is primarily for editor support. 
                 // Setting the RootDirectory to an absolute path is useful in editor
@@ -310,7 +309,7 @@ namespace Microsoft.Xna.Framework.Content
                 //  stopwatchReadAsset.Reset ();
                 //  stopwatchReadAsset.Start ();
 
-                stream = TitleContainer.OpenStream (assetPath);
+                stream = TitleContainer.OpenStream(assetPath);
 
                 //    stopwatchReadAsset.Stop ();
                 //    addTime ("ContentManager_OpenStream_OpenStream: "+ assetName, stopwatchReadAsset.ElapsedMilliseconds);
@@ -321,10 +320,10 @@ namespace Microsoft.Xna.Framework.Content
                 //   stopwatchReadAsset.Reset ();
                 //   stopwatchReadAsset.Start ();
 
-                MemoryStream memStream = new MemoryStream ();
-                stream.CopyTo (memStream);
-                memStream.Seek (0, SeekOrigin.Begin);
-                stream.Close ();
+                MemoryStream memStream = new MemoryStream();
+                stream.CopyTo(memStream);
+                memStream.Seek(0, SeekOrigin.Begin);
+                stream.Close();
                 stream = memStream;
 
                 //   stopwatchReadAsset.Stop ();
@@ -333,35 +332,35 @@ namespace Microsoft.Xna.Framework.Content
             }
             catch (FileNotFoundException fileNotFound)
             {
-                throw new ContentLoadException ("The content file was not found.", fileNotFound);
+                throw new ContentLoadException("The content file was not found.", fileNotFound);
             }
 #if !WINRT
             catch (DirectoryNotFoundException directoryNotFound)
             {
-                throw new ContentLoadException ("The directory was not found.", directoryNotFound);
+                throw new ContentLoadException("The directory was not found.", directoryNotFound);
             }
 #endif
             catch (Exception exception)
             {
-                throw new ContentLoadException ("Opening stream error.", exception);
+                throw new ContentLoadException("Opening stream error.", exception);
             }
             return stream;
 
 
         }
 
-        public static Dictionary<String, long> times = new Dictionary<string, long> ();
-        static object lockyTimer = new object ();
-        public static void addTime (string key, long millis)
+        public static Dictionary<String, long> times = new Dictionary<string, long>();
+        static object lockyTimer = new object();
+        public static void addTime(string key, long millis)
         {
 #if ROPO_PRINT
             Android.Util.Log.Info ("ropo_stopwatch", key);
 #endif
             lock (lockyTimer)
             {
-                if (times.ContainsKey (key) == false)
+                if (times.ContainsKey(key) == false)
                 {
-                    times.Add (key, millis);
+                    times.Add(key, millis);
                 }
                 else
                 {
@@ -370,7 +369,7 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        public static void printLoadingTimes ()
+        public static void printLoadingTimes()
         {
             String t = "";
             /*  foreach (KeyValuePair<string, long> entry in times)
@@ -379,34 +378,156 @@ namespace Microsoft.Xna.Framework.Content
               }*/
 
             // print by time usage order
-            foreach (KeyValuePair<string, long> entry in times.OrderBy (key => key.Value))
+            foreach (KeyValuePair<string, long> entry in times.OrderBy(key => key.Value))
             {
                 t += entry.Key + ": " + entry.Value + "\n";
             }
 
 
 #if ANDROID
-            Game.Instance.Window.log ("ropo_stopwatch", t);
+            Game.Instance.Window.log("ropo_stopwatch", t);
 #endif
         }
 
-        public static System.Threading.SynchronizationContext syncContext = null;
+        //  public delegate void ResCallback<T> (T result);
+        public delegate void ResCallback(object result);
+
+        public class ResTask
+        {
+            ResCallback onExecute = null;
+            ResTask next = null; // gets executed immediately after this one, is not appended to queue. Needed for memory optimization
+
+            public ResTask()
+            {
+
+            }
+
+            public ResTask(ResCallback onExecute)
+            {
+                this.onExecute = onExecute;
+            }
+
+            public void Execute()
+            {
+                onExecute(null);
+                
+                if(next != null)
+                {
+                    next.Execute();
+                }
+            }
+
+            // WARNING: THIS MUST BE CALLED BEFORE 'SetNextTask' OR THAT CALL WILL OVERWRITE IT!
+            public void SetCallback(ResCallback onExecute)
+            {
+                this.onExecute = onExecute;
+            }
+
+            public void SetNextTask(ResTask next)
+            {
+                if (this.next != null)
+                {
+                    throw new Exception("next task is already set, you can only set one next task, you most likely wanted to use some other task");
+                }
+
+                this.next = next;
+
+            }
+        }
+
+        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+
+        static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
+
+        class WorkerTask
+        {
+            public WorkerTask(System.Threading.Tasks.Task task, System.Threading.CancellationTokenSource token)
+            {
+                this.task = task;
+                this.cancelToken = token;
+            }
+
+            public System.Threading.Tasks.Task task = null;
+            public System.Threading.CancellationTokenSource cancelToken;
+        }
+        static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
+       public  static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
+
+        public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
+        {
+            m_resourceLoadingTasksMainThread.Enqueue(task);
+            m_tasksMainThreadWait.Set();
+        }
+
+        public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
+        {
+            m_resourceLoadingTasksWorkerThread.Enqueue(task);
+            m_workerThreadEvent.Set();
+        }
 
         // return num tasks it processed
-        public static int RunTasksOnMainThread ()
+        public static int RunNextTask()
         {
+            int numProcessedTasks = 0;
+
             ResTask task = null;
-            if (m_resourceLoadingTasks.TryDequeue (out task))
+            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
-                task.onExecute (null); // executes task and adds new task to queue if needed
-                return 1;
+                task.Execute();
+
+                ++numProcessedTasks;
             }
-            else
+
+            return numProcessedTasks;
+        }
+
+        public static void StartWorkerTasksThreads()
+        {
+            int numCPU = System.Environment.ProcessorCount; // TODO: CAP THIS IN CASE RAM USAGE GETS HIGH VERY HIGH!
+     
+            for (int i = 0; i < numCPU; ++i)
             {
-                return 0;
+                System.Threading.CancellationTokenSource token = new System.Threading.CancellationTokenSource();
+
+                System.Threading.Tasks.Task threadTask = System.Threading.Tasks.Task.Factory.StartNew(() =>
+                 {
+                     int numProcessedTasks = 0;
+                     while (token.IsCancellationRequested == false)
+                     {
+                         ResTask resTask = null;
+                         if (m_resourceLoadingTasksWorkerThread.TryDequeue(out resTask))
+                         {
+                             resTask.Execute();
+                             ++numProcessedTasks;
+                         }
+                         else if (token.IsCancellationRequested == false)
+                         {
+                             m_workerThreadEvent.Reset();
+                         }
+
+                         m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
+                     }
+                     Game.Instance.Window.log("ropo", "Worker # tasks: " + numProcessedTasks);
+                 }, token.Token);
+                // }, token.Token,System.Threading.Tasks.TaskCreationOptions.LongRunning, System.Threading.Tasks.TaskScheduler.Current);
+
+                m_workerTasks.Add(new WorkerTask(threadTask, token));
             }
 
         }
+
+        public static void StopWorkerThreadTasks()
+        {
+            
+            foreach (WorkerTask task in m_workerTasks)
+            {                
+                task.cancelToken.Cancel();
+            }
+
+            m_workerThreadEvent.Set();
+        }
+
         /*public static int RunTasksOnMainThread ()
         {
             int numProcessedTasks = 0;
@@ -581,18 +702,18 @@ namespace Microsoft.Xna.Framework.Content
                return res;
            }*/
 
-        protected T ReadAsset<T> (string assetName, Action<IDisposable> recordDisposableObject)
+        protected T ReadAsset<T>(string assetName, Action<IDisposable> recordDisposableObject)
         {
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
 #endif
-            if (string.IsNullOrEmpty (assetName))
+            if (string.IsNullOrEmpty(assetName))
             {
-                throw new ArgumentNullException ("assetName");
+                throw new ArgumentNullException("assetName");
             }
             if (disposed)
             {
-                throw new ObjectDisposedException ("ContentManager");
+                throw new ObjectDisposedException("ContentManager");
             }
 
             string originalAssetName = assetName;
@@ -600,17 +721,17 @@ namespace Microsoft.Xna.Framework.Content
 
             if (this.graphicsDeviceService == null)
             {
-                this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
+                this.graphicsDeviceService = serviceProvider.GetService(typeof(IGraphicsDeviceService)) as IGraphicsDeviceService;
                 if (this.graphicsDeviceService == null)
                 {
-                    throw new InvalidOperationException ("No Graphics Device Service");
+                    throw new InvalidOperationException("No Graphics Device Service");
                 }
             }
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
 #endif
-
+            
             //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
             // 
             // Try to load as XNB file
@@ -621,32 +742,32 @@ namespace Microsoft.Xna.Framework.Content
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
-            var stream = OpenStream (assetName);
+            var stream = OpenStream(assetName);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
 
             //  stopwatchReadAsset.Stop ();
             //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-            T res = default (T);
+            T res = default(T);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
 
-            Action a = new Action (() =>
-            {
+            Action a = new Action(() =>
+           {
 
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
 #endif
 
-#if ROPO_ADD_TIME_SINGLE_THREADED 
+#if ROPO_ADD_TIME_SINGLE_THREADED
                 System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
 #endif
-                BinaryReader xnbReader = new BinaryReader (stream);
+                BinaryReader xnbReader = new BinaryReader(stream);
 #if ROPO_ADD_TIME_SINGLE_THREADED
                 stopwatchReadAsset.Stop ();
                 addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
@@ -657,7 +778,7 @@ namespace Microsoft.Xna.Framework.Content
                     stopwatchReadAsset.Reset ();
                     stopwatchReadAsset.Start ();
 #endif
-                    ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
+                    ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
 
 #if ROPO_ADD_TIME_SINGLE_THREADED
                     stopwatchReadAsset.Stop ();
@@ -672,7 +793,7 @@ namespace Microsoft.Xna.Framework.Content
                         stopwatchReadAsset.Reset ();
                         stopwatchReadAsset.Start ();
 #endif
-                        result = reader.ReadAsset<T> ();
+                        result = reader.ReadAsset<T>();
 
 #if ROPO_ADD_TIME_SINGLE_THREADED
                         stopwatchReadAsset.Stop ();
@@ -683,16 +804,16 @@ namespace Microsoft.Xna.Framework.Content
                         Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
 #endif
                         if (result is GraphicsResource)
-                            ((GraphicsResource)result).Name = originalAssetName;
-                    }
-                    reader.Close ();
-                }
-                xnbReader.Close ();
+                           ((GraphicsResource)result).Name = originalAssetName;
+                   }
+                   reader.Close();
+               }
+               xnbReader.Close();
 
 
-                if (result == null)
-                    throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
-                res = (T)result;
+               if (result == null)
+                   throw new ContentLoadException("Could not load " + originalAssetName + " asset!");
+               res = (T)result;
                 // e.Set ();
 
 #if ANDROID && ROPO_PRINT
@@ -707,7 +828,7 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
             // ONLY SINGLE THREADED FOR NOW
-            a ();
+            a();
             /* if (Threading.IsOnUIThread () == false)
              {
                  MyTask t = new MyTask (a);
@@ -728,34 +849,34 @@ namespace Microsoft.Xna.Framework.Content
 
             if (res == null)
             {
-                Game.Instance.Window.log ("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
+                Game.Instance.Window.log("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
 
             }
             return res;
         }
 
-        protected void ReadAssetCallback<T> (string assetName, Action<IDisposable> recordDisposableObject, ResCallback onDone)
+        protected void ReadAssetCallback<T>(ContentManager.ResTask task, string assetName, Action<IDisposable> recordDisposableObject, ResCallback onDone)
         {
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
 #endif
-            if (string.IsNullOrEmpty (assetName))
+            if (string.IsNullOrEmpty(assetName))
             {
-                throw new ArgumentNullException ("assetName");
+                throw new ArgumentNullException("assetName");
             }
             if (disposed)
             {
-                throw new ObjectDisposedException ("ContentManager");
+                throw new ObjectDisposedException("ContentManager");
             }
 
             string originalAssetName = assetName;
 
             if (this.graphicsDeviceService == null)
             {
-                this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
+                this.graphicsDeviceService = serviceProvider.GetService(typeof(IGraphicsDeviceService)) as IGraphicsDeviceService;
                 if (this.graphicsDeviceService == null)
                 {
-                    throw new InvalidOperationException ("No Graphics Device Service");
+                    throw new InvalidOperationException("No Graphics Device Service");
                 }
             }
 
@@ -763,13 +884,12 @@ namespace Microsoft.Xna.Framework.Content
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
 #endif
 
-
             // Try to load as XNB file
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
-            var stream = OpenStream (assetName);
+            var stream = OpenStream(assetName);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
 #endif
@@ -779,18 +899,18 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
 #if ROPO_ADD_TIME
-            System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch ();
-            stopwatchAction.Reset ();
-            stopwatchAction.Start ();
+            System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch();
+            stopwatchAction.Reset();
+            stopwatchAction.Start();
 #endif
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
 #endif
 
-            BinaryReader xnbReader = new BinaryReader (stream);
+            BinaryReader xnbReader = new BinaryReader(stream);
 
-            ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
+            ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
 
             /* this FAILS WHEN RUN IN MULTITHREAD, CANNOT USE THREADPOOL BECAUSE ITS FULL OF QUEUES SO IT BLOCKS, TO BREAK
              THIS ACTION INTO 2 OR MAKE SMALLER ACTIONS THAT WILL FREE THE THREAD POOL
@@ -804,21 +924,21 @@ namespace Microsoft.Xna.Framework.Content
                 if (obj is GraphicsResource)
                     ((GraphicsResource)obj).Name = originalAssetName;
 
-                reader.Close ();
+                reader.Close();
 
-                xnbReader.Close ();
+                xnbReader.Close();
 
                 if (result == null)
                 {
-                    throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
+                    throw new ContentLoadException("Could not load " + originalAssetName + " asset!");
                 }
 
-                onDone (result);
+                onDone(result);
             };
 
 
-            reader.ReadAssetCallback<T> (onFinishedReadingAsset);
-         
+            reader.ReadAssetCallback<T>(task, onFinishedReadingAsset);
+
 
 #if ANDROID && ROPO_PRINT
                         Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
@@ -830,8 +950,8 @@ namespace Microsoft.Xna.Framework.Content
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
 #endif
 #if ROPO_ADD_TIME
-            stopwatchAction.Stop ();
-            addTime ("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
+            stopwatchAction.Stop();
+            addTime("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
 #endif
 
 
@@ -844,78 +964,49 @@ namespace Microsoft.Xna.Framework.Content
         }
 
 
-        //  public delegate void ResCallback<T> (T result);
-        public delegate void ResCallback (object result);
 
-        public class ResTask
-        {
-            public ResCallback onExecute = null;
-     
-            public ResTask ()
-            {
 
-            }
-
-            public ResTask (ResCallback onExecute)
-            {
-                this.onExecute = onExecute;
-            }
-
-            // WARNING: THIS MUST BE CALLED BEFORE 'SetNextTask' OR THAT CALL WILL OVERWRITE IT!
-            public void SetCallback (ResCallback onExecute)
-            {
-                this.onExecute = onExecute;
-            }
-        }
-
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasks = new System.Collections.Concurrent.ConcurrentQueue<ResTask> ();
-
-        public static void EnqueueResourceLoadingTask (ResTask task)
-        {
-            m_resourceLoadingTasks.Enqueue (task);
-        }
-
-        private ContentReader GetContentReaderFromXnb (string originalAssetName, Stream stream, BinaryReader xnbReader, Action<IDisposable> recordDisposableObject)
+        private ContentReader GetContentReaderFromXnb(string originalAssetName, Stream stream, BinaryReader xnbReader, Action<IDisposable> recordDisposableObject)
         {
             // The first 4 bytes should be the "XNB" header. i use that to detect an invalid file
-            byte x = xnbReader.ReadByte ();
-            byte n = xnbReader.ReadByte ();
-            byte b = xnbReader.ReadByte ();
-            byte platform = xnbReader.ReadByte ();
+            byte x = xnbReader.ReadByte();
+            byte n = xnbReader.ReadByte();
+            byte b = xnbReader.ReadByte();
+            byte platform = xnbReader.ReadByte();
 
             if (x != 'X' || n != 'N' || b != 'B' ||
-                !(targetPlatformIdentifiers.Contains ((char)platform)))
+                !(targetPlatformIdentifiers.Contains((char)platform)))
             {
-                throw new ContentLoadException ("Asset does not appear to be a valid XNB file. Did you process your content for Windows?");
+                throw new ContentLoadException("Asset does not appear to be a valid XNB file. Did you process your content for Windows?");
             }
 
-            byte version = xnbReader.ReadByte ();
-            byte flags = xnbReader.ReadByte ();
+            byte version = xnbReader.ReadByte();
+            byte flags = xnbReader.ReadByte();
 
             bool compressedLzx = (flags & ContentCompressedLzx) != 0;
             bool compressedLz4 = (flags & ContentCompressedLz4) != 0;
             if (version != 5 && version != 4)
             {
-                throw new ContentLoadException ("Invalid XNB version");
+                throw new ContentLoadException("Invalid XNB version");
             }
 
             // The next int32 is the length of the XNB file
-            int xnbLength = xnbReader.ReadInt32 ();
+            int xnbLength = xnbReader.ReadInt32();
 
             Stream decompressedStream = null;
             if (compressedLzx || compressedLz4)
             {
                 // Decompress the xnb
-                int decompressedSize = xnbReader.ReadInt32 ();
+                int decompressedSize = xnbReader.ReadInt32();
 
                 if (compressedLzx)
                 {
                     int compressedSize = xnbLength - 14;
-                    decompressedStream = new LzxDecoderStream (stream, decompressedSize, compressedSize);
+                    decompressedStream = new LzxDecoderStream(stream, decompressedSize, compressedSize);
                 }
                 else if (compressedLz4)
                 {
-                    decompressedStream = new Lz4DecoderStream (stream);
+                    decompressedStream = new Lz4DecoderStream(stream);
                 }
             }
             else
@@ -923,20 +1014,20 @@ namespace Microsoft.Xna.Framework.Content
                 decompressedStream = stream;
             }
 
-            var reader = new ContentReader (this, decompressedStream, this.graphicsDeviceService.GraphicsDevice,
+            var reader = new ContentReader(this, decompressedStream, this.graphicsDeviceService.GraphicsDevice,
                                                         originalAssetName, version, recordDisposableObject);
 
             return reader;
         }
 
-        internal void RecordDisposable (IDisposable disposable)
+        internal void RecordDisposable(IDisposable disposable)
         {
-            Debug.Assert (disposable != null, "The disposable is null!");
+            Debug.Assert(disposable != null, "The disposable is null!");
 
             // Avoid recording disposable objects twice. ReloadAsset will try to record the disposables again.
             // We don't know which asset recorded which disposable so just guard against storing multiple of the same instance.
-            if (!disposableAssets.Contains (disposable))
-                disposableAssets.Add (disposable);
+            if (!disposableAssets.Contains(disposable))
+                disposableAssets.Add(disposable);
         }
 
         /// <summary>
@@ -947,66 +1038,66 @@ namespace Microsoft.Xna.Framework.Content
             get { return loadedAssets; }
         }
 
-        protected virtual void ReloadGraphicsAssets ()
+        protected virtual void ReloadGraphicsAssets()
         {
             foreach (var asset in LoadedAssets)
             {
                 // This never executes as asset.Key is never null.  This just forces the 
                 // linker to include the ReloadAsset function when AOT compiled.
                 if (asset.Key == null)
-                    ReloadAsset (asset.Key, Convert.ChangeType (asset.Value, asset.Value.GetType ()));
+                    ReloadAsset(asset.Key, Convert.ChangeType(asset.Value, asset.Value.GetType()));
 
 #if WINDOWS_STOREAPP || WINDOWS_UAP
                 var methodInfo = typeof(ContentManager).GetType().GetTypeInfo().GetDeclaredMethod("ReloadAsset");
 #else
-                var methodInfo = typeof (ContentManager).GetMethod ("ReloadAsset", BindingFlags.NonPublic | BindingFlags.Instance);
+                var methodInfo = typeof(ContentManager).GetMethod("ReloadAsset", BindingFlags.NonPublic | BindingFlags.Instance);
 #endif
-                var genericMethod = methodInfo.MakeGenericMethod (asset.Value.GetType ());
-                genericMethod.Invoke (this, new object[] { asset.Key, Convert.ChangeType (asset.Value, asset.Value.GetType ()) });
+                var genericMethod = methodInfo.MakeGenericMethod(asset.Value.GetType());
+                genericMethod.Invoke(this, new object[] { asset.Key, Convert.ChangeType(asset.Value, asset.Value.GetType()) });
             }
         }
 
-        protected virtual void ReloadAsset<T> (string originalAssetName, T currentAsset)
+        protected virtual void ReloadAsset<T>(string originalAssetName, T currentAsset)
         {
             string assetName = originalAssetName;
-            if (string.IsNullOrEmpty (assetName))
+            if (string.IsNullOrEmpty(assetName))
             {
-                throw new ArgumentNullException ("assetName");
+                throw new ArgumentNullException("assetName");
             }
             if (disposed)
             {
-                throw new ObjectDisposedException ("ContentManager");
+                throw new ObjectDisposedException("ContentManager");
             }
 
             if (this.graphicsDeviceService == null)
             {
-                this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
+                this.graphicsDeviceService = serviceProvider.GetService(typeof(IGraphicsDeviceService)) as IGraphicsDeviceService;
                 if (this.graphicsDeviceService == null)
                 {
-                    throw new InvalidOperationException ("No Graphics Device Service");
+                    throw new InvalidOperationException("No Graphics Device Service");
                 }
             }
 
-            var stream = OpenStream (assetName);
-            using (var xnbReader = new BinaryReader (stream))
+            var stream = OpenStream(assetName);
+            using (var xnbReader = new BinaryReader(stream))
             {
-                using (var reader = GetContentReaderFromXnb (assetName, stream, xnbReader, null))
+                using (var reader = GetContentReaderFromXnb(assetName, stream, xnbReader, null))
                 {
-                    reader.ReadAsset<T> (currentAsset);
+                    reader.ReadAsset<T>(currentAsset);
                 }
             }
         }
 
-        public virtual void Unload ()
+        public virtual void Unload()
         {
             // Look for disposable assets.
             foreach (var disposable in disposableAssets)
             {
                 if (disposable != null)
-                    disposable.Dispose ();
+                    disposable.Dispose();
             }
-            disposableAssets.Clear ();
-            loadedAssets.Clear ();
+            disposableAssets.Clear();
+            loadedAssets.Clear();
         }
 
         public string RootDirectory
@@ -1025,7 +1116,7 @@ namespace Microsoft.Xna.Framework.Content
         {
             get
             {
-                return Path.Combine (TitleContainer.Location, RootDirectory);
+                return Path.Combine(TitleContainer.Location, RootDirectory);
             }
         }
 
@@ -1037,12 +1128,36 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        internal byte[] GetScratchBuffer (int size)
+        internal byte[] GetScratchBuffer(int size)
         {
-            size = Math.Max (size, 1024 * 1024);
+            size = Math.Max(size, 1024 * 1024);
             if (scratchBuffer == null || scratchBuffer.Length < size)
                 scratchBuffer = new byte[size];
             return scratchBuffer;
+        }
+
+        static Dictionary<int, byte[]> threadScratchBuffer = new Dictionary<int, byte[]>();
+        static object _threadScratchBufferLock = new object();
+
+        internal byte[] GetScratchBufferForCurrentThread(int size)
+        {
+            int threadId = Environment.CurrentManagedThreadId;
+
+            lock (_threadScratchBufferLock)
+            {
+                size = Math.Max(size, 1024 * 1024);
+                byte[] buf = null;
+                if (threadScratchBuffer.ContainsKey(threadId))
+                {
+                    buf = threadScratchBuffer[threadId];
+                }
+                if (buf == null || buf.Length < size)
+                {
+                    buf = new byte[size];
+                    threadScratchBuffer[threadId] = buf;
+                }
+                return buf;
+            }
         }
     }
 }

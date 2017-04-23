@@ -38,7 +38,7 @@ namespace Microsoft.Xna.Framework.Content
 
         protected internal abstract object Read (ContentReader input, object existingInstance);
 
-        protected internal virtual void ReadCallback (ContentReader input, object existingInstance, ContentManager.ResCallback onDone) { }
+        protected internal virtual void ReadCallback (ContentManager.ResTask task, ContentReader input, object existingInstance, ContentManager.ResCallback onDone) { }
 
     }
 
@@ -64,22 +64,22 @@ namespace Microsoft.Xna.Framework.Content
 
         protected internal abstract T Read (ContentReader input, T existingInstance);
 
-        protected internal override void ReadCallback (ContentReader input, object existingInstance, ContentManager.ResCallback onDone)
+        protected internal override void ReadCallback (ContentManager.ResTask task, ContentReader input, object existingInstance, ContentManager.ResCallback onDone)
         {
             // as per the documentation http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.content.contenttypereader.read.aspx
             // existingInstance
             // The object receiving the data, or null if a new instance of the object should be created.
             if (existingInstance == null)
             {
-                ReadCallback (input, default (T), onDone);
+                ReadCallback (task, input, default (T), onDone);
             }
             else
             {
-                ReadCallback (input, (T)existingInstance, onDone);
+                ReadCallback (task, input, (T)existingInstance, onDone);
             }
         }
 
-        protected internal virtual void ReadCallback (ContentReader input, T existingInstance, ContentManager.ResCallback onDone) { }
+        protected internal virtual void ReadCallback (ContentManager.ResTask task, ContentReader input, T existingInstance, ContentManager.ResCallback onDone) { }
 
 
 
