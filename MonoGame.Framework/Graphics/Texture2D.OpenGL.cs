@@ -135,7 +135,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 if (mipmap)
                 {
 #if IOS || ANDROID
-				    GL.GenerateMipmap(TextureTarget.TextureCubeMap);
+                    GL.GenerateMipmap(TextureTarget.TextureCubeMap);
 #else
                     GraphicsDevice.FramebufferHelper.Get().GenerateMipmap((int) glTarget);
                     // This updates the mipmaps after a change in the base texture
@@ -161,45 +161,44 @@ namespace Microsoft.Xna.Framework.Graphics
         {
 
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-       
+
             //  Threading.BlockOnUIThread(() =>
             //  {
             var elementSizeInByte = ReflectionHelpers.SizeOf<T>.Get();
-                var dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
-                // Use try..finally to make sure dataHandle is freed in case of an error
-                try
-                {
-                    var startBytes = startIndex * elementSizeInByte;
-                    var dataPtr = new IntPtr(dataHandle.AddrOfPinnedObject().ToInt64() + startBytes);
-                    // Store the current bound texture.
-                    var prevTexture = GraphicsExtensions.GetBoundTexture2D();
+            var dataHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
+            // Use try..finally to make sure dataHandle is freed in case of an error
+            try
+            {
+                var startBytes = startIndex * elementSizeInByte;
+                var dataPtr = new IntPtr(dataHandle.AddrOfPinnedObject().ToInt64() + startBytes);
+                // Store the current bound texture.
+                var prevTexture = GraphicsExtensions.GetBoundTexture2D();
 
-                    GenerateGLTextureIfRequired();
+                GenerateGLTextureIfRequired();
 
-                    GL.BindTexture(TextureTarget.Texture2D, this.glTexture);
-                    GraphicsExtensions.CheckGLError();
-               
-             
+                GL.BindTexture(TextureTarget.Texture2D, this.glTexture);
+                GraphicsExtensions.CheckGLError();
+
+
                 if (glFormat == (PixelFormat)GLPixelFormat.CompressedTextureFormats)
-                    {
-                        GL.CompressedTexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y, rect.Width, rect.Height,
-                            (PixelInternalFormat) glInternalFormat, elementCount * elementSizeInByte, dataPtr);
-                        GraphicsExtensions.CheckGLError();
-                    }
-                    else
-                    {
+                {
+                    GL.CompressedTexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y, rect.Width, rect.Height,
+                        (PixelInternalFormat)glInternalFormat, elementCount * elementSizeInByte, dataPtr);
+                    GraphicsExtensions.CheckGLError();
+                }
+                else
+                {
                     sw.Reset();
                     sw.Start();
-                
-                   //   GL.TexImage2D()
-                        GL.TexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y,
-                         rect.Width, rect.Height, glFormat, glType, dataPtr);
-                     SEE DELLIS PR FOR MULTIPLE CONTEXTS!
-                 
+
+                    //   GL.TexImage2D()
+                    GL.TexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y,
+                     rect.Width, rect.Height, glFormat, glType, dataPtr);
+
                     sw.Stop();
                     Content.ContentManager.addTime("Texture2D::Part2", sw.ElapsedMilliseconds);
                     GraphicsExtensions.CheckGLError();
-                    }             
+                }
 
 #if !ANDROID
                     GL.Finish();
@@ -207,20 +206,20 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
                 // Restore the bound texture.
                 GL.BindTexture(TextureTarget.Texture2D, prevTexture);
-                    GraphicsExtensions.CheckGLError();
-                }
-                finally
-                {
-                    dataHandle.Free();
-                }
+                GraphicsExtensions.CheckGLError();
+            }
+            finally
+            {
+                dataHandle.Free();
+            }
 
 #if !ANDROID
                 // Required to make sure that any texture uploads on a thread are completed
                 // before the main thread tries to use the texture.
                 GL.Finish();
 #endif
-          //  });
-            #if ROPO_TIMER
+            //  });
+#if ROPO_TIMER
             stopwatchLoad.Stop ();
 #if ANDROID
             Microsoft.Xna.Framework.Content.ContentManager.addTime ("Texture2D.OpenGL_SetData", stopwatchLoad.ElapsedMilliseconds);
@@ -231,7 +230,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private void PlatformGetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
-            #if ROPO_TIMER
+#if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
 #endif
@@ -242,7 +241,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
             var framebufferId = 0;
 #if (IOS || ANDROID)
-			GL.GenFramebuffers(1, out framebufferId);
+            GL.GenFramebuffers(1, out framebufferId);
 #else
             GL.GenFramebuffers(1, ref framebufferId);
 #endif
@@ -316,7 +315,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Stream stream)
         {
-            #if ROPO_TIMER
+#if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
 #endif
@@ -344,7 +343,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 #endif
 #if ANDROID
-          
+
             using (Bitmap image = BitmapFactory.DecodeStream(stream, null, new BitmapFactory.Options
             {
                 InScaled = false,
@@ -354,7 +353,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 InInputShareable = true,
             }))
             {
-                Texture2D tex= PlatformFromStream(graphicsDevice, image);
+                Texture2D tex = PlatformFromStream(graphicsDevice, image);
 #if ROPO_TIMER
                 stopwatchLoad.Stop ();
 #if ANDROID
@@ -395,7 +394,7 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
 
 
-            }
+        }
 
 #if IOS
         [CLSCompliant(false)]
@@ -482,7 +481,7 @@ namespace Microsoft.Xna.Framework.Graphics
 #elif ANDROID
         private static Texture2D PlatformFromStream(GraphicsDevice graphicsDevice, Bitmap image)
         {
-            #if ROPO_TIMER
+#if ROPO_TIMER
             stopwatchLoad.Reset ();
             stopwatchLoad.Start ();
 #endif

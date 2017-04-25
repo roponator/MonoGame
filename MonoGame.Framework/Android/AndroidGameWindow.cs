@@ -14,7 +14,6 @@ namespace Microsoft.Xna.Framework
     [CLSCompliant(false)]
     public class AndroidGameWindow : GameWindow, IDisposable
     {
-        public static System.Diagnostics.Stopwatch stopwatch_onCreate_AndroidGameWindow_OnUpdateFrame = new System.Diagnostics.Stopwatch ();
         public static System.Diagnostics.Stopwatch stopwatch_prepare = new System.Diagnostics.Stopwatch ();
 
         public static void StopRunningAndPrintStopwatch (System.Diagnostics.Stopwatch sw, String text)
@@ -46,7 +45,7 @@ namespace Microsoft.Xna.Framework
             }
         }
 
-        internal MonoGameAndroidGameView GameView { get; private set; }
+        public MonoGameAndroidGameView GameView { get; private set; }
         internal IResumeManager Resumer;
 
         private readonly Game _game;
@@ -102,8 +101,6 @@ namespace Microsoft.Xna.Framework
 
         private void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            StopRunningAndPrintStopwatch (stopwatch_onCreate_AndroidGameWindow_OnUpdateFrame, "onCreate->AndroidGameWindow::OnUpdateFrame");
-
             if(threadReadyForStopwatch == false)
             {
                 threadReadyForStopwatch = true;

@@ -391,7 +391,7 @@ namespace Microsoft.Xna.Framework.Content
                 // 250ms for all textures, neglectable
                 texture = existingInstance ?? new Texture2D(reader.GraphicsDevice, width, height, levelCountOutput > 1, convertedFormat);
 
-                // 2000ms for entire for loop for all textures
+                // 2000ms for entire for loop for all textures. TODO POTENTIAL OPTIMIZE, WOULD REQUIRE THREADED OPENGL...
                 for (int level = 0; level < levelCount; ++level)
                         {
                             texture.SetData(level, null, levelData[level], 0, levelDataSizeInBytes[level]);

@@ -19,7 +19,7 @@ namespace Microsoft.Xna.Framework
     /// <summary>
     /// Our override of OpenTK.AndroidGameView. Provides Touch and Key Input handling.
     /// </summary>
-    internal class MonoGameAndroidGameView : AndroidGameView, View.IOnTouchListener, ISurfaceHolderCallback
+    public class MonoGameAndroidGameView : AndroidGameView, View.IOnTouchListener, ISurfaceHolderCallback
     {
         private readonly AndroidGameWindow _gameWindow;
         private readonly Game _game;
@@ -68,6 +68,9 @@ namespace Microsoft.Xna.Framework
 
         void ISurfaceHolderCallback.SurfaceChanged(ISurfaceHolder holder, Android.Graphics.Format format, int width, int height)
         {
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+
             if ((int)Android.OS.Build.VERSION.SdkInt >= 19)
             {
                 if (!_isSurfaceChanged)
@@ -114,6 +117,9 @@ namespace Microsoft.Xna.Framework
 
             if (_game.GraphicsDevice != null)
                 _game.graphicsDeviceManager.ResetClientBounds();
+
+            sw.Stop();
+            Content.ContentManager.addTime("SurfaceChanged", sw.ElapsedMilliseconds);
         }
 
         void ISurfaceHolderCallback.SurfaceDestroyed(ISurfaceHolder holder)
@@ -124,9 +130,15 @@ namespace Microsoft.Xna.Framework
 
         void ISurfaceHolderCallback.SurfaceCreated(ISurfaceHolder holder)
         {
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+
             SurfaceCreated(holder);
             Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceCreated: surfaceFrame = " + holder.SurfaceFrame.ToString());
             _isSurfaceChanged = false;
+
+            sw.Stop();
+            Content.ContentManager.addTime("SurfaceCreated", sw.ElapsedMilliseconds);
         }
 
         #endregion

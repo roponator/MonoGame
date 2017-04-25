@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework.Input.Touch;
 
 namespace Microsoft.Xna.Framework
 {
-    abstract partial class GamePlatform : IDisposable
+    public abstract partial class GamePlatform : IDisposable
     {
         #region Fields
 

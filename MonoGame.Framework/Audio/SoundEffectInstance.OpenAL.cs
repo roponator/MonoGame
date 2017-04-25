@@ -87,9 +87,9 @@ namespace Microsoft.Xna.Framework.Audio
             finalVel = Vector3.Transform(finalVel, orientation);
 
             // set the position based on relative positon
-            AL.Source(SourceId, ALSource3f.Position, finalPos.X, finalPos.Y, finalPos.Z);
+            AL.Source((uint)SourceId, ALSource3f.Position, finalPos.X, finalPos.Y, finalPos.Z);
             ALHelper.CheckError("Failed to set source position.");
-            AL.Source(SourceId, ALSource3f.Velocity, finalVel.X, finalVel.Y, finalVel.Z);
+            AL.Source((uint)SourceId, ALSource3f.Velocity, finalVel.X, finalVel.Y, finalVel.Z);
             ALHelper.CheckError("Failed to Set source velocity.");
         }
 
@@ -127,7 +127,7 @@ namespace Microsoft.Xna.Framework.Audio
 			AL.DistanceModel (ALDistanceModel.InverseDistanceClamped);
             ALHelper.CheckError("Failed set source distance.");
 			// Pan
-			AL.Source (SourceId, ALSource3f.Position, _pan, 0, 0.1f);
+			AL.Source ((uint)SourceId, ALSource3f.Position, _pan, 0, 0.1f);
             ALHelper.CheckError("Failed to set source pan.");
 			// Volume
 			AL.Source (SourceId, ALSourcef.Gain, _alVolume);
@@ -212,7 +212,7 @@ namespace Microsoft.Xna.Framework.Audio
         {
             if (HasSourceId)
             {
-                AL.Source(SourceId, ALSource3f.Position, value, 0.0f, 0.1f);
+                AL.Source((uint)SourceId, ALSource3f.Position, value, 0.0f, 0.1f);
                 ALHelper.CheckError("Failed to set source pan.");
             }
         }
