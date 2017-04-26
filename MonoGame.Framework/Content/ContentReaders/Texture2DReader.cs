@@ -36,7 +36,7 @@ namespace Microsoft.Xna.Framework.Content
                 (!MathHelper.IsPowerOfTwo(width) || !MathHelper.IsPowerOfTwo(height)))
             {
                 levelCountOutput = 1;
-                System.Diagnostics.Debug.WriteLine(
+                System.Diagnostics.Debug.WriteLine(  // TODO ROPO REPLACE
                     "Device does not support non Power of Two textures. Skipping mipmaps.");
             }
 
@@ -232,7 +232,7 @@ namespace Microsoft.Xna.Framework.Content
                 (!MathHelper.IsPowerOfTwo(width) || !MathHelper.IsPowerOfTwo(height)))
             {
                 levelCountOutput = 1;
-                System.Diagnostics.Debug.WriteLine(
+                System.Diagnostics.Debug.WriteLine(  // TODO ROPO REPLACE
                     "Device does not support non Power of Two textures. Skipping mipmaps.");
             }
 

@@ -840,7 +840,7 @@ namespace FindMyIP
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("EndjoinGroup exception {0}", ex.Message);
+                    Debug.WriteLine("EndjoinGroup exception {0}", ex.Message);  // TODO ROPO REPLACE
                     // This can happen eg when wifi is off
                     FoundCallback(null);
                 }
@@ -883,7 +883,7 @@ namespace FindMyIP
             byte[] buffer = result.AsyncState as byte[];
             if (responselength == MulticastData.Length && buffer.SequenceEqual(MulticastData))
             {
-                Debug.WriteLine("FOUND myself at " + where.Address.ToString());
+                Debug.WriteLine("FOUND myself at " + where.Address.ToString());  // TODO ROPO REPLACE
                 keepsearching = false;
                 FoundCallback(where.Address);
             }

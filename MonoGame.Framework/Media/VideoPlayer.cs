@@ -151,7 +151,7 @@ namespace Microsoft.Xna.Framework.Media
                     break;
                 }
                 var sleepTime = i*sleepTimeFactor;
-                Debug.WriteLine("PlatformGetTexture returned null ({0}) sleeping for {1} ms", i + 1, sleepTime);
+                //   Debug.WriteLine("PlatformGetTexture returned null ({0}) sleeping for {1} ms", i + 1, sleepTime);  // TODO ROPO REPLACE
 #if WINRT
                 Task.Delay(sleepTime).Wait();
 #else
@@ -223,7 +223,7 @@ namespace Microsoft.Xna.Framework.Media
                     break;
                 }
                 var sleepTime = i*sleepTimeFactor;
-                Debug.WriteLine("State != MediaState.Playing ({0}) sleeping for {1} ms", i + 1, sleepTime);
+                //     Debug.WriteLine("State != MediaState.Playing ({0}) sleeping for {1} ms", i + 1, sleepTime);  // TODO ROPO REPLACE
 #if WINRT
                 Task.Delay(sleepTime).Wait();
 #else

@@ -71,8 +71,8 @@ namespace Microsoft.Xna.Framework.Content
 						throw new NotSupportedException ("Parameter type is not supported");
 					}
 				} else {
-					Debug.WriteLine ("No parameter " + item.Key);
-				}
+					Debug.WriteLine ("No parameter " + item.Key);  // TODO ROPO REPLACE
+                }
 			}
 
 			return effectMaterial;

@@ -531,24 +531,38 @@ namespace Microsoft.Xna.Framework
 
         protected virtual void Initialize()
         {
-            // TODO: This should be removed once all platforms use the new GraphicsDeviceManager
-            applyChanges(graphicsDeviceManager);
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
 
+            sw.Reset();
+            sw.Start();
+          
+            // TODO: This should be removed once all platforms use the new GraphicsDeviceManager
+            // 0ms
+            applyChanges(graphicsDeviceManager);
+           
+ 
             // According to the information given on MSDN (see link below), all
             // GameComponents in Components at the time Initialize() is called
             // are initialized.
             // http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.game.initialize.aspx
             // Initialize all existing components
+            // 300ms
             InitializeExistingComponents();
 
+            // 0ms
             _graphicsDeviceService = (IGraphicsDeviceService)
                 Services.GetService(typeof(IGraphicsDeviceService));
 
+
+            // 0ms
             if (_graphicsDeviceService != null &&
                 _graphicsDeviceService.GraphicsDevice != null)
             {
                 LoadContent();
             }
+            sw.Stop();
+            ContentManager.addTime("Game.cs Initialize -> Initialize ALL", sw.ElapsedMilliseconds);
+
         }
 
         private static readonly Action<IDrawable, GameTime> DrawAction =
@@ -678,24 +692,46 @@ namespace Microsoft.Xna.Framework
 
         internal void DoInitialize()
         {
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
+
+            sw.Reset();
+            sw.Start();
+
+            // 155 ms
             AssertNotDisposed();
             if (GraphicsDevice == null && graphicsDeviceManager != null)
                 _graphicsDeviceManager.CreateDevice();
 
+          
+          // 33ms
             Platform.BeforeInitialize();
-            Initialize();
 
+            sw.Stop();
+            ContentManager.addTime("Game.cs DoInitialize -> Part 1", sw.ElapsedMilliseconds);
+
+            sw.Reset();
+            sw.Start();
+
+            // 1100ms
+            Initialize();
+                 
+            
             // We need to do this after virtual Initialize(...) is called.
             // 1. Categorize components into IUpdateable and IDrawable lists.
             // 2. Subscribe to Added/Removed events to keep the categorized
             //    lists synced and to Initialize future components as they are
-            //    added.            
+            //    added.       
+            // 11ms     
             CategorizeComponents();
             _components.ComponentAdded += Components_ComponentAdded;
             _components.ComponentRemoved += Components_ComponentRemoved;
+
+            sw.Stop();
+            ContentManager.addTime("Game.cs DoInitialize -> Part 2", sw.ElapsedMilliseconds);
+
         }
 
-		internal void DoExiting()
+        internal void DoExiting()
 		{
 			OnExiting(this, EventArgs.Empty);
 			UnloadContent();

@@ -371,12 +371,8 @@ namespace Microsoft.Xna.Framework.Content
 
         public static void printLoadingTimes()
         {
-            String t = "";
-            /*  foreach (KeyValuePair<string, long> entry in times)
-              {
-                  t += entry.Key + ": " + entry.Value + "\n";
-              }*/
-
+           /* String t = "";
+          
             // print by time usage order
             foreach (KeyValuePair<string, long> entry in times.OrderBy(key => key.Value))
             {
@@ -386,7 +382,7 @@ namespace Microsoft.Xna.Framework.Content
 
 #if ANDROID
             Game.Instance.Window.log("ropo_stopwatch", t);
-#endif
+#endif*/
         }
 
         //  public delegate void ResCallback<T> (T result);

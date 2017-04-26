@@ -92,7 +92,7 @@ namespace Microsoft.Xna.Framework.Audio
                 reader.ReadUInt16 (); // toolVersion
                 uint formatVersion = reader.ReadUInt16();
                 if (formatVersion != 42)
-                    Debug.WriteLine("Warning: XGS format " + formatVersion + " not supported!");
+                    Debug.WriteLine("Warning: XGS format " + formatVersion + " not supported!");  // TODO ROPO REPLACE
 
                 reader.ReadUInt16 (); // crc
                 reader.ReadUInt32 (); // lastModifiedLow

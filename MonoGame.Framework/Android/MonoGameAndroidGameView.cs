@@ -68,9 +68,6 @@ namespace Microsoft.Xna.Framework
 
         void ISurfaceHolderCallback.SurfaceChanged(ISurfaceHolder holder, Android.Graphics.Format format, int width, int height)
         {
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-
             if ((int)Android.OS.Build.VERSION.SdkInt >= 19)
             {
                 if (!_isSurfaceChanged)
@@ -113,32 +110,31 @@ namespace Microsoft.Xna.Framework
             manager.ApplyChanges();
 
             SurfaceChanged(holder, format, width, height);
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceChanged: format = " + format + ", width = " + width + ", height = " + height);
+
+            // todo ropo
+           // Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceChanged: format = " + format + ", width = " + width + ", height = " + height);
 
             if (_game.GraphicsDevice != null)
                 _game.graphicsDeviceManager.ResetClientBounds();
-
-            sw.Stop();
-            Content.ContentManager.addTime("SurfaceChanged", sw.ElapsedMilliseconds);
+            
         }
 
         void ISurfaceHolderCallback.SurfaceDestroyed(ISurfaceHolder holder)
         {
             SurfaceDestroyed(holder);
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceDestroyed");
+            // todo ropo
+            //Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceDestroyed");
         }
 
         void ISurfaceHolderCallback.SurfaceCreated(ISurfaceHolder holder)
         {
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-
+     
             SurfaceCreated(holder);
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceCreated: surfaceFrame = " + holder.SurfaceFrame.ToString());
+
+            // todo ropo
+            //   Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.SurfaceCreated: surfaceFrame = " + holder.SurfaceFrame.ToString());
             _isSurfaceChanged = false;
 
-            sw.Stop();
-            Content.ContentManager.addTime("SurfaceCreated", sw.ElapsedMilliseconds);
         }
 
         #endregion
@@ -172,7 +168,7 @@ namespace Microsoft.Xna.Framework
             // this usually happens on older devices when other opengl apps are run 
             // or the lock screen is enabled. Modern devices can preserve the opengl 
             // context along with all the textures and shaders it has attached.
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Lost");
+            //    Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Lost");  // todo ropo
 
             // DeviceResetting events
             _game.graphicsDeviceManager.OnDeviceResetting(EventArgs.Empty);
@@ -192,7 +188,7 @@ namespace Microsoft.Xna.Framework
             // used to happen. 
 
             base.OnContextSet(e);
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Set");
+            //    Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Set");  // todo ropo
 
             if (_lostContext)
             {
@@ -212,9 +208,9 @@ namespace Microsoft.Xna.Framework
                     System.Threading.Thread bgThread = new System.Threading.Thread(
                         o =>
                         {
-                            Android.Util.Log.Debug("MonoGame", "Begin reloading graphics content");
+                            // Android.Util.Log.Debug("MonoGame", "Begin reloading graphics content");  // todo ropo
                             Microsoft.Xna.Framework.Content.ContentManager.ReloadGraphicsContent();
-                            Android.Util.Log.Debug("MonoGame", "End reloading graphics content");
+                            //   Android.Util.Log.Debug("MonoGame", "End reloading graphics content");  // todo ropo
 
                             // DeviceReset events
                             _game.graphicsDeviceManager.OnDeviceReset(EventArgs.Empty);
@@ -229,7 +225,7 @@ namespace Microsoft.Xna.Framework
         }
         protected override void CreateFrameBuffer()
         {
-            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.CreateFrameBuffer");
+            //  Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView.CreateFrameBuffer");  // todo ropo
 
             ContextRenderingApi = GLVersion.ES2;
             int depth = 0;
@@ -274,10 +270,11 @@ namespace Microsoft.Xna.Framework
             Exception innerException = null;
             foreach (GraphicsMode mode in modes)
             {
-                if (mode != null)
-                    Android.Util.Log.Debug("MonoGame", "Creating Color: {0}, Depth: {1}, Stencil: {2}, Accum:{3}", mode.ColorFormat, mode.Depth, mode.Stencil, mode.AccumulatorFormat);
-                else
-                    Android.Util.Log.Debug("MonoGame", "Creating default mode");
+                // todo ropo
+                /*  if (mode != null)
+                      Android.Util.Log.Debug("MonoGame", "Creating Color: {0}, Depth: {1}, Stencil: {2}, Accum:{3}", mode.ColorFormat, mode.Depth, mode.Stencil, mode.AccumulatorFormat);
+                  else
+                      Android.Util.Log.Debug("MonoGame", "Creating default mode");*/
                 GraphicsMode = mode;
                 try
                 {
@@ -288,9 +285,9 @@ namespace Microsoft.Xna.Framework
                     innerException = e;
                     continue;
                 }
-                Android.Util.Log.Debug("MonoGame", "Created format {0}", GraphicsContext.GraphicsMode);
+                // Android.Util.Log.Debug("MonoGame", "Created format {0}", GraphicsContext.GraphicsMode);  // todo ropo
                 var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-                Android.Util.Log.Debug("MonoGame", "Framebuffer Status: " + status.ToString());
+                // Android.Util.Log.Debug("MonoGame", "Framebuffer Status: " + status.ToString());  // todo ropo
 
                 MakeCurrent();
                 return;

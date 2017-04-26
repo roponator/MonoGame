@@ -46,7 +46,7 @@ namespace Microsoft.Xna.Framework.Media
 
                     if (titleColumn == -1 || durationColumn == -1 || assetIdColumn == -1)
                     {
-                        Debug.WriteLine("Missing essential properties from music library. Returning empty library.");
+                        Debug.WriteLine("Missing essential properties from music library. Returning empty library.");  // TODO ROPO REPLACE
                         albumCollection = new AlbumCollection(albumList);
                         songCollection = new SongCollection(songList);
                         return;
@@ -108,8 +108,8 @@ namespace Microsoft.Xna.Framework.Media
                         }
                         catch (Exception e)
                         {
-                            Debug.WriteLine("MediaLibrary exception: " + e.Message);
-                        }
+                            Debug.WriteLine("MediaLibrary exception: " + e.Message);  // TODO ROPO REPLACE
+                        } 
                 }
 
                 musicCursor.Close();

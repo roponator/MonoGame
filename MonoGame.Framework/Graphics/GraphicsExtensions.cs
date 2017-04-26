@@ -924,7 +924,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 // Todo: Add generic MonoGame logging interface
                 Android.Util.Log.Debug("MonoGame", "MonoGameGLException at " + location + " - " + ex.Message);
 #else
-                Debug.WriteLine("MonoGameGLException at " + location + " - " + ex.Message);
+                Debug.WriteLine("MonoGameGLException at " + location + " - " + ex.Message);  // TODO ROPO REPLACE
 #endif
             }
         }
