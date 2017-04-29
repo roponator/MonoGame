@@ -371,8 +371,8 @@ namespace Microsoft.Xna.Framework.Content
 
         public static void printLoadingTimes()
         {
-           /* String t = "";
-          
+            String t = "";
+
             // print by time usage order
             foreach (KeyValuePair<string, long> entry in times.OrderBy(key => key.Value))
             {
@@ -382,7 +382,7 @@ namespace Microsoft.Xna.Framework.Content
 
 #if ANDROID
             Game.Instance.Window.log("ropo_stopwatch", t);
-#endif*/
+#endif
         }
 
         //  public delegate void ResCallback<T> (T result);
@@ -406,15 +406,15 @@ namespace Microsoft.Xna.Framework.Content
             public void Execute()
             {
                 onExecute(null);
-                
-                if(next != null)
+
+                if (next != null)
                 {
                     next.Execute();
                 }
             }
 
             // WARNING: THIS MUST BE CALLED BEFORE 'SetNextTask' OR THAT CALL WILL OVERWRITE IT!
-            public void SetCallback(ResCallback onExecute)
+            public void SetWorkToExecuteInTask(ResCallback onExecute)
             {
                 this.onExecute = onExecute;
             }
@@ -452,7 +452,7 @@ namespace Microsoft.Xna.Framework.Content
             public System.Threading.CancellationTokenSource cancelToken;
         }
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
-       public  static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
+        public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
 
         public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
         {
@@ -482,10 +482,13 @@ namespace Microsoft.Xna.Framework.Content
             return numProcessedTasks;
         }
 
+        public const int MaxNumTaskThreads = 8; // is capped because texture loading can use up a lot of memory so that we don't run out
+
         public static void StartWorkerTasksThreads()
         {
-            int numCPU = System.Environment.ProcessorCount; // TODO: CAP THIS IN CASE RAM USAGE GETS HIGH VERY HIGH!
-     
+            // start as many tasks as cpu cores
+            int numCPU = Math.Min(System.Environment.ProcessorCount, MaxNumTaskThreads);
+
             for (int i = 0; i < numCPU; ++i)
             {
                 System.Threading.CancellationTokenSource token = new System.Threading.CancellationTokenSource();
@@ -499,7 +502,7 @@ namespace Microsoft.Xna.Framework.Content
                          if (m_resourceLoadingTasksWorkerThread.TryPop(out resTask))
                          {
                              resTask.Execute();
-                             ++numProcessedTasks;
+                             ++numProcessedTasks; SO WASTER TIME SEEM TO BE VERY SMALL, 15MS, SO NOW REWRITE THE THING SO I CAN LOAD OTHER ASSETS IN TASKS
                          }
                          else if (token.IsCancellationRequested == false)
                          {
@@ -508,11 +511,9 @@ namespace Microsoft.Xna.Framework.Content
 
                          m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
                      }
-                    OpenTK.Graphics.ES20.GL.Flush();
-                     OpenTK.Graphics.ES20.GL.Finish();
+
                      Game.Instance.Window.log("ropo", "Worker # tasks: " + numProcessedTasks);
                  }, token.Token);
-                // }, token.Token,System.Threading.Tasks.TaskCreationOptions.LongRunning, System.Threading.Tasks.TaskScheduler.Current);
 
                 m_workerTasks.Add(new WorkerTask(threadTask, token));
             }
@@ -521,9 +522,9 @@ namespace Microsoft.Xna.Framework.Content
 
         public static void StopWorkerThreadTasks()
         {
-            
+
             foreach (WorkerTask task in m_workerTasks)
-            {                
+            {
                 task.cancelToken.Cancel();
             }
 
@@ -733,7 +734,7 @@ namespace Microsoft.Xna.Framework.Content
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
 #endif
-            
+
             //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
             // 
             // Try to load as XNB file
@@ -769,18 +770,18 @@ namespace Microsoft.Xna.Framework.Content
                 stopwatchReadAsset.Reset ();
                 stopwatchReadAsset.Start ();
 #endif
-                BinaryReader xnbReader = new BinaryReader(stream);
+               BinaryReader xnbReader = new BinaryReader(stream);
 #if ROPO_ADD_TIME_SINGLE_THREADED
                 stopwatchReadAsset.Stop ();
                 addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
 #endif
 
-                {
+               {
 #if ROPO_ADD_TIME_SINGLE_THREADED
                     stopwatchReadAsset.Reset ();
                     stopwatchReadAsset.Start ();
 #endif
-                    ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
+                   ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
 
 #if ROPO_ADD_TIME_SINGLE_THREADED
                     stopwatchReadAsset.Stop ();
@@ -790,12 +791,12 @@ namespace Microsoft.Xna.Framework.Content
 #if ANDROID && ROPO_PRINT
                     Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
 #endif
-                    {
+                   {
 #if ROPO_ADD_TIME_SINGLE_THREADED
                         stopwatchReadAsset.Reset ();
                         stopwatchReadAsset.Start ();
 #endif
-                        result = reader.ReadAsset<T>();
+                       result = reader.ReadAsset<T>();
 
 #if ROPO_ADD_TIME_SINGLE_THREADED
                         stopwatchReadAsset.Stop ();
@@ -805,7 +806,7 @@ namespace Microsoft.Xna.Framework.Content
 #if ANDROID && ROPO_PRINT
                         Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
 #endif
-                        if (result is GraphicsResource)
+                       if (result is GraphicsResource)
                            ((GraphicsResource)result).Name = originalAssetName;
                    }
                    reader.Close();
@@ -816,14 +817,14 @@ namespace Microsoft.Xna.Framework.Content
                if (result == null)
                    throw new ContentLoadException("Could not load " + originalAssetName + " asset!");
                res = (T)result;
-                // e.Set ();
+               // e.Set ();
 
 #if ANDROID && ROPO_PRINT
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
 #endif
 
 
-            });
+           });
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 3");
@@ -901,9 +902,9 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
 #if ROPO_ADD_TIME
-          //  System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch();
-          //  stopwatchAction.Reset();
-          //  stopwatchAction.Start();
+            //  System.Diagnostics.Stopwatch stopwatchAction = new Stopwatch();
+            //  stopwatchAction.Reset();
+            //  stopwatchAction.Start();
 #endif
 
 #if ANDROID && ROPO_PRINT
@@ -952,8 +953,8 @@ namespace Microsoft.Xna.Framework.Content
                 Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
 #endif
 #if ROPO_ADD_TIME
-          //  stopwatchAction.Stop();
-         //   addTime("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
+            //  stopwatchAction.Stop();
+            //   addTime("ContentManager_new Entire Action", stopwatchAction.ElapsedMilliseconds);
 #endif
 
 
