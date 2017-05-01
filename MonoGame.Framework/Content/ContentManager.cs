@@ -431,14 +431,6 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        // Using a stack instead of the queue so that the last added tasks gets processed first, otherwise due to the limit of max
-        // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
-        // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
-        // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
-        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
-        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
-
-        static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
 
         class WorkerTask
         {
@@ -451,24 +443,37 @@ namespace Microsoft.Xna.Framework.Content
             public System.Threading.Tasks.Task task = null;
             public System.Threading.CancellationTokenSource cancelToken;
         }
+
+        // Using a stack instead of the queue so that the last added tasks gets processed first, otherwise due to the limit of max
+        // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
+        // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
+        // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
+
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
         public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
+        public static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
 
         public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
         {
+            //Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnMainThread");
+
             m_resourceLoadingTasksMainThread.Push(task);
             m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
+           // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
+
             m_resourceLoadingTasksWorkerThread.Push(task);
             m_workerThreadEvent.Set();
         }
 
         // return num tasks it processed
         public static int RunNextTask()
-        {
+        {          
             int numProcessedTasks = 0;
 
             ResTask task = null;
@@ -479,13 +484,40 @@ namespace Microsoft.Xna.Framework.Content
                 ++numProcessedTasks;
             }
 
+            // nudge workers
+            m_workerThreadEvent.Set();
+
             return numProcessedTasks;
         }
 
         public const int MaxNumTaskThreads = 8; // is capped because texture loading can use up a lot of memory so that we don't run out
 
-        public static void StartWorkerTasksThreads()
-        {
+        static bool m_isMultithreadedLoadingStarted = false;
+
+        // Spawns loading threads. You MUST call 'FinishMultithreadedLoading' after your resources have been loading so threads are stopped.
+        public static void StartOrContinueMultithreadedLoading()
+        {            
+            // to allow this to be called every frame
+            if (m_isMultithreadedLoadingStarted == true)
+            {
+                return;
+            }
+
+            if(m_resourceLoadingTasksMainThread.Count>0 || m_resourceLoadingTasksWorkerThread.Count>0)
+            {
+                throw new Exception("bug, should both be 0");
+            }
+            if (m_workerTasks.Count > 0)
+            {
+                throw new Exception("bug, should both be 0");
+            }        
+
+          // We must reset signals
+            m_tasksMainThreadWait.Set();
+            m_workerThreadEvent.Set();
+
+            m_isMultithreadedLoadingStarted = true;
+
             // start as many tasks as cpu cores
             int numCPU = Math.Min(System.Environment.ProcessorCount, MaxNumTaskThreads);
 
@@ -502,17 +534,16 @@ namespace Microsoft.Xna.Framework.Content
                          if (m_resourceLoadingTasksWorkerThread.TryPop(out resTask))
                          {
                              resTask.Execute();
-                             ++numProcessedTasks; SO WASTER TIME SEEM TO BE VERY SMALL, 15MS, SO NOW REWRITE THE THING SO I CAN LOAD OTHER ASSETS IN TASKS
+                             ++numProcessedTasks; 
                          }
                          else if (token.IsCancellationRequested == false)
-                         {
+                         {                         
                              m_workerThreadEvent.Reset();
                          }
 
                          m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
                      }
 
-                     Game.Instance.Window.log("ropo", "Worker # tasks: " + numProcessedTasks);
                  }, token.Token);
 
                 m_workerTasks.Add(new WorkerTask(threadTask, token));
@@ -520,8 +551,14 @@ namespace Microsoft.Xna.Framework.Content
 
         }
 
-        public static void StopWorkerThreadTasks()
+        // Stops loadings threads
+        public static void FinishMultithreadedLoading()
         {
+            // ignore if not running
+            if(m_isMultithreadedLoadingStarted == false)
+            {
+                return;
+            }
 
             foreach (WorkerTask task in m_workerTasks)
             {
@@ -529,181 +566,10 @@ namespace Microsoft.Xna.Framework.Content
             }
 
             m_workerThreadEvent.Set();
+            m_workerTasks.Clear();
+
+            m_isMultithreadedLoadingStarted = false;
         }
-
-        /*public static int RunTasksOnMainThread ()
-        {
-            int numProcessedTasks = 0;
-
-            lock (uiThreadTasks)
-            {
-                if (uiThreadTasks.Count > 0)
-                {
-#if ANDROID && ROPO_PRINT
-                    Game.Instance.Window.log ("ropo_stopwatch", "RunTasksOnMainThread 1");
-#endif
-
-                    foreach (MyTask t in uiThreadTasks)
-                    {
-                        t.task ();
-                        t.isFinished = true;
-                        ++numProcessedTasks;
-#if ANDROID && ROPO_PRINT
-                        Game.Instance.Window.log ("ropo_stopwatch", "RunTasksOnMainThread 2");
-#endif
-                    }
-
-                    uiThreadTasks.Clear ();
-
-#if ANDROID && ROPO_PRINT
-                    Game.Instance.Window.log ("ropo_stopwatch", "RunTasksOnMainThread end");
-#endif
-                }
-            }
-            return numProcessedTasks;
-        }*/
-
-        /* public class MyTask
-         {
-             public Action task;
-             public bool isFinished;
-
-             public MyTask (Action taskAction)
-             {
-                 task = taskAction;
-                 isFinished = false;
-             }
-         }
-
-
-         public static List<MyTask> uiThreadTasks = new List<MyTask> ();*/
-        //   static volatile int atom = 0;
-
-        /* public static void EnqueueMainThreadAction(Action a)
-         {
-             if (Threading.IsOnUIThread () == false)
-             {
-                 ContentManager.MyTask t = new ContentManager.MyTask (a);
-
-                 lock (ContentManager.uiThreadTasks)
-                 {
-                     ContentManager.uiThreadTasks.Add (t);
-                 }
-             }
-             else
-             {
-                 a ();
-             }
-         }*/
-
-        /*   protected T ReadAsset<T> (string assetName, Action<IDisposable> recordDisposableObject)
-           {
-   #if ANDROID && ROPO_PRINT
-               Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
-   #endif
-               if (string.IsNullOrEmpty (assetName))
-               {
-                   throw new ArgumentNullException ("assetName");
-               }
-               if (disposed)
-               {
-                   throw new ObjectDisposedException ("ContentManager");
-               }
-
-               string originalAssetName = assetName;
-               object result = null;
-
-               if (this.graphicsDeviceService == null)
-               {
-                   this.graphicsDeviceService = serviceProvider.GetService (typeof (IGraphicsDeviceService)) as IGraphicsDeviceService;
-                   if (this.graphicsDeviceService == null)
-                   {
-                       throw new InvalidOperationException ("No Graphics Device Service");
-                   }
-               }
-
-   #if ANDROID && ROPO_PRINT
-               Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
-   #endif
-
-               //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
-               // 
-               // Try to load as XNB file
-
-
-               var stream = OpenStream (assetName);
-
-               //  stopwatchReadAsset.Stop ();
-               //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-               T res = default (T);
-               Action a = new Action (() =>
-               {
-
-   #if ANDROID && ROPO_PRINT
-                   Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
-   #endif
-                   System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-                   stopwatchReadAsset.Reset ();
-                   stopwatchReadAsset.Start ();
-                   BinaryReader xnbReader = new BinaryReader (stream);
-                   stopwatchReadAsset.Stop ();
-                   addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-
-                   {
-                       stopwatchReadAsset.Reset ();
-                       stopwatchReadAsset.Start ();
-                       ContentReader reader = GetContentReaderFromXnb (assetName, stream, xnbReader, recordDisposableObject);
-                       stopwatchReadAsset.Stop ();
-                       addTime ("ContentManager_GetContentReaderFromXnb_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-
-   #if ANDROID && ROPO_PRINT
-                       Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
-   #endif
-                       {
-                           stopwatchReadAsset.Reset ();
-                           stopwatchReadAsset.Start ();
-                           result = reader.ReadAsset<T> ();
-                           stopwatchReadAsset.Stop ();
-                           addTime ("ContentManager_ReadAsset_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-
-   #if ANDROID && ROPO_PRINT
-                           Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
-   #endif
-                           if (result is GraphicsResource)
-                               ((GraphicsResource)result).Name = originalAssetName;
-                       }
-                       reader.Close ();
-                   }
-                   xnbReader.Close ();
-
-
-                   if (result == null)
-                       throw new ContentLoadException ("Could not load " + originalAssetName + " asset!");
-                   res = (T)result;
-               });
-
-
-               if (Threading.IsOnUIThread () == false)
-               {
-                   System.Threading.ManualResetEvent ev = new System.Threading.ManualResetEvent (false);
-
-                   a ();
-                   ev.Set();
-
-                   ev.WaitOne ();
-               }
-               else
-               {
-                   a ();
-               }
-
-               if (res == null)
-               {
-                   Game.Instance.Window.log ("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
-
-               }
-               return res;
-           }*/
 
         protected T ReadAsset<T>(string assetName, Action<IDisposable> recordDisposableObject)
         {
@@ -965,9 +831,6 @@ namespace Microsoft.Xna.Framework.Content
 
 
         }
-
-
-
 
         private ContentReader GetContentReaderFromXnb(string originalAssetName, Stream stream, BinaryReader xnbReader, Action<IDisposable> recordDisposableObject)
         {

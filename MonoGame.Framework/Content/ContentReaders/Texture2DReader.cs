@@ -400,8 +400,9 @@ namespace Microsoft.Xna.Framework.Content
 
                 onDone(texture);
                     });
-        
-                    ContentManager.EnqueueResourceLoadingTaskOnMainThread(setDataTask);
+
+          
+            ContentManager.EnqueueResourceLoadingTaskOnMainThread(setDataTask);
                
         }
 
