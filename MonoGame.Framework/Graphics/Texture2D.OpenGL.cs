@@ -160,7 +160,7 @@ namespace Microsoft.Xna.Framework.Graphics
         private void PlatformSetData<T>(int level, int arraySlice, Rectangle rect, T[] data, int startIndex, int elementCount) where T : struct
         {
 
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+          //  System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
 
             //  Threading.BlockOnUIThread(() =>
             //  {
@@ -188,15 +188,15 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
                 else
                 {
-                    sw.Reset();
-                    sw.Start();
+                   // sw.Reset();
+                  //  sw.Start();
 
                     //   GL.TexImage2D()
                     GL.TexSubImage2D(TextureTarget.Texture2D, level, rect.X, rect.Y,
                      rect.Width, rect.Height, glFormat, glType, dataPtr);
 
-                    sw.Stop();
-                    Content.ContentManager.addTime("Texture2D::Part2", sw.ElapsedMilliseconds);
+                 //   sw.Stop();
+               //     Content.ContentManager.addTime("Texture2D::Part2", sw.ElapsedMilliseconds);
                     GraphicsExtensions.CheckGLError();
                 }
 
