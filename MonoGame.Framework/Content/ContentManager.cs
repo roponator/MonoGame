@@ -525,6 +525,7 @@ namespace Microsoft.Xna.Framework.Content
         static bool m_isMultithreadedLoadingStarted = false;
 
         // Spawns loading threads. You MUST call 'FinishMultithreadedLoading' after your resources have been loading so threads are stopped.
+        static int xx = 0;
         public static void StartOrContinueMultithreadedLoading()
         {            
             // to allow this to be called every frame
@@ -557,9 +558,11 @@ namespace Microsoft.Xna.Framework.Content
             {
                 System.Threading.CancellationTokenSource token = new System.Threading.CancellationTokenSource();
 
+               int thisTid =  ++xx;
+
                 System.Threading.Tasks.Task threadTask = System.Threading.Tasks.Task.Factory.StartNew(() =>
                  {
-                   //  Stopwatch sw = new Stopwatch();
+                     Stopwatch sw = new Stopwatch();
 
                      int numProcessedTasks = 0;
                      while (token.IsCancellationRequested == false)
@@ -567,11 +570,11 @@ namespace Microsoft.Xna.Framework.Content
                          ResTask resTask = null;
                          if (m_resourceLoadingTasksWorkerThread.TryDequeue(out resTask))
                          {
-                           //  sw.Reset();
-                           //  sw.Start();
+                             sw.Reset();
+                             sw.Start();
                              resTask.Execute();
-                           //  sw.Stop();
-                            // addTime("Task: Execute: ", sw.ElapsedMilliseconds);
+                             sw.Stop();
+                            addTime("Task: Execute "+ thisTid + ": ", sw.ElapsedMilliseconds);
 
                              ++numProcessedTasks; 
                          }
@@ -580,12 +583,13 @@ namespace Microsoft.Xna.Framework.Content
                              m_workerThreadEvent.Reset();
                          }
 
-                      //   sw.Reset();
-                      //   sw.Start();
+                         sw.Reset();
+                         sw.Start();
                          m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
-                      //   sw.Stop();
-                     //    addTime("Task: WaitOne: ", sw.ElapsedMilliseconds);
+                         sw.Stop();
+                         addTime("Task: WaitOne" + thisTid + ": ", sw.ElapsedMilliseconds);
 
+                     
                      }
 
                    //  Game.Instance.Window.log("ropo_numTasks", "Tid: "+Environment.CurrentManagedThreadId+": " +numProcessedTasks);
