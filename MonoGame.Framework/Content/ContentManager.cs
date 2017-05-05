@@ -473,7 +473,7 @@ namespace Microsoft.Xna.Framework.Content
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
-        /*public static int RunFastTaskFromAnyQueue()
+        public static int RunTaskFromAnyQueue()
         {          
             int numProcessedTasks = 0;
 
@@ -500,7 +500,7 @@ namespace Microsoft.Xna.Framework.Content
             m_workerThreadEvent.Set();
 
             return numProcessedTasks;
-        }*/
+        }
 
        public static int RunNextTaskFromMainThreadQueue()
         {
