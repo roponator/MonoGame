@@ -38,8 +38,8 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        internal ContentReader (ContentManager manager, Stream stream, GraphicsDevice graphicsDevice, string assetName, int version, Action<IDisposable> recordDisposableObject)
-            : base (stream)
+        internal ContentReader(ContentManager manager, Stream stream, GraphicsDevice graphicsDevice, string assetName, int version, Action<IDisposable> recordDisposableObject)
+            : base(stream)
         {
             this.graphicsDevice = graphicsDevice;
             this.recordDisposableObject = recordDisposableObject;
@@ -64,201 +64,196 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        internal object ReadAsset<T> ()
+        internal object ReadAsset<T>()
         {
-            InitializeTypeReaders ();
+            InitializeTypeReaders();
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);
 #endif
 
             // Read primary object
-            object result = ReadObject<T> ();
+            object result = ReadObject<T>();
 
             // Read shared resources
-            ReadSharedResources ();
+            ReadSharedResources();
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset end " + typeof (T).Name);
 #endif
             return result;
         }
 
-        internal void ReadAssetCallback<T> (ContentManager.ResTask task, ContentManager.ResCallback onDone)
+        internal void ReadAssetCallback<T>(ContentManager.ResTask task, ContentManager.ResCallback onDone)
         {
-            InitializeTypeReaders ();
+            InitializeTypeReaders();
 
-            ContentManager.ResTask newTask = new ContentManager.ResTask ();
-
-            ContentManager.ResCallback a = (_) =>
-            {
+            ContentManager.ResTask newTask = new ContentManager.ResTask();
 
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);
 #endif
 
-                ContentManager.ResCallback onInnerTaskDone = (taskRes) =>
-                {
+            ContentManager.ResCallback onInnerTaskDone = (taskRes) =>
+            {
                     // Read shared resources
-                    ReadSharedResources ();
+                    ReadSharedResources(); // todo ropo wtf does this do
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset end " + typeof (T).Name);
 #endif
 
-                    onDone ((T)taskRes);
-                };
-               
-                // Read primary object
-                InnerReadObjectCallback (task, default (T), onInnerTaskDone);
- 
+                    onDone((T)taskRes);
             };
-            a (null);
+
+            // Read primary object
+            InnerReadObjectCallback(task, default(T), onInnerTaskDone);
+
 
             //newTask.SetCallback (a);
             //ContentManager.EnqueueResourceLoadingTask (newTask);
         }
 
-        internal object ReadAsset<T> (T existingInstance)
+        internal object ReadAsset<T>(T existingInstance)
         {
-            InitializeTypeReaders ();
+            InitializeTypeReaders();
 
             // Read primary object
-            object result = ReadObject<T> (existingInstance);
+            object result = ReadObject<T>(existingInstance);
 
             // Read shared resources
-            ReadSharedResources ();
+            ReadSharedResources();
 
             return result;
         }
 
-        internal void InitializeTypeReaders ()
+        internal void InitializeTypeReaders()
         {
-            typeReaderManager = new ContentTypeReaderManager ();
-            typeReaders = typeReaderManager.LoadAssetReaders (this);
-            sharedResourceCount = Read7BitEncodedInt ();
-            sharedResourceFixups = new List<KeyValuePair<int, Action<object>>> ();
+            typeReaderManager = new ContentTypeReaderManager();
+            typeReaders = typeReaderManager.LoadAssetReaders(this);
+            sharedResourceCount = Read7BitEncodedInt();
+            sharedResourceFixups = new List<KeyValuePair<int, Action<object>>>();
         }
 
-        internal void ReadSharedResources ()
+        internal void ReadSharedResources()
         {
             if (sharedResourceCount <= 0)
                 return;
 
             var sharedResources = new object[sharedResourceCount];
             for (var i = 0; i < sharedResourceCount; ++i)
-                sharedResources[i] = InnerReadObject<object> (null);
+                sharedResources[i] = InnerReadObject<object>(null);
 
             // Fixup shared resources by calling each registered action
             foreach (var fixup in sharedResourceFixups)
-                fixup.Value (sharedResources[fixup.Key]);
+                fixup.Value(sharedResources[fixup.Key]);
         }
 
-        public T ReadExternalReference<T> ()
+        public T ReadExternalReference<T>()
         {
-            var externalReference = ReadString ();
+            var externalReference = ReadString();
 
-            if (!String.IsNullOrEmpty (externalReference))
+            if (!String.IsNullOrEmpty(externalReference))
             {
-                return contentManager.Load<T> (FileHelpers.ResolveRelativePath (assetName, externalReference));
+                return contentManager.Load<T>(FileHelpers.ResolveRelativePath(assetName, externalReference));
             }
 
-            return default (T);
+            return default(T);
         }
 
-        public Matrix ReadMatrix ()
+        public Matrix ReadMatrix()
         {
-            Matrix result = new Matrix ();
-            result.M11 = ReadSingle ();
-            result.M12 = ReadSingle ();
-            result.M13 = ReadSingle ();
-            result.M14 = ReadSingle ();
-            result.M21 = ReadSingle ();
-            result.M22 = ReadSingle ();
-            result.M23 = ReadSingle ();
-            result.M24 = ReadSingle ();
-            result.M31 = ReadSingle ();
-            result.M32 = ReadSingle ();
-            result.M33 = ReadSingle ();
-            result.M34 = ReadSingle ();
-            result.M41 = ReadSingle ();
-            result.M42 = ReadSingle ();
-            result.M43 = ReadSingle ();
-            result.M44 = ReadSingle ();
+            Matrix result = new Matrix();
+            result.M11 = ReadSingle();
+            result.M12 = ReadSingle();
+            result.M13 = ReadSingle();
+            result.M14 = ReadSingle();
+            result.M21 = ReadSingle();
+            result.M22 = ReadSingle();
+            result.M23 = ReadSingle();
+            result.M24 = ReadSingle();
+            result.M31 = ReadSingle();
+            result.M32 = ReadSingle();
+            result.M33 = ReadSingle();
+            result.M34 = ReadSingle();
+            result.M41 = ReadSingle();
+            result.M42 = ReadSingle();
+            result.M43 = ReadSingle();
+            result.M44 = ReadSingle();
             return result;
         }
 
-        private void RecordDisposable<T> (T result)
+        private void RecordDisposable<T>(T result)
         {
             var disposable = result as IDisposable;
             if (disposable == null)
                 return;
 
             if (recordDisposableObject != null)
-                recordDisposableObject (disposable);
+                recordDisposableObject(disposable);
             else
-                contentManager.RecordDisposable (disposable);
+                contentManager.RecordDisposable(disposable);
         }
 
-        public T ReadObject<T> ()
+        public T ReadObject<T>()
         {
-            return InnerReadObject (default (T));
+            return InnerReadObject(default(T));
         }
 
-        public T ReadObject<T> (ContentTypeReader typeReader)
+        public T ReadObject<T>(ContentTypeReader typeReader)
         {
-            var result = (T)typeReader.Read (this, default (T));
-            RecordDisposable (result);
+            var result = (T)typeReader.Read(this, default(T));
+            RecordDisposable(result);
             return result;
         }
 
-        public T ReadObject<T> (T existingInstance)
+        public T ReadObject<T>(T existingInstance)
         {
-            return InnerReadObject (existingInstance);
+            return InnerReadObject(existingInstance);
         }
 
-        private T InnerReadObject<T> (T existingInstance)
+        private T InnerReadObject<T>(T existingInstance)
         {
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
 #endif
 
-            var typeReaderIndex = Read7BitEncodedInt ();
+            var typeReaderIndex = Read7BitEncodedInt();
             if (typeReaderIndex == 0)
                 return existingInstance;
 
             if (typeReaderIndex > typeReaders.Length)
-                throw new ContentLoadException ("Incorrect type reader index found!");
+                throw new ContentLoadException("Incorrect type reader index found!");
 
             var typeReader = typeReaders[typeReaderIndex - 1];
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 2 " + typeof (T).Name);
 #endif
-            T res = (T)typeReader.Read (this, existingInstance);
+            T res = (T)typeReader.Read(this, existingInstance);
 
-            RecordDisposable (res);
+            RecordDisposable(res);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject end " + typeof (T).Name);
 #endif
             return res;
         }
 
-        private void InnerReadObjectCallback<T> (ContentManager.ResTask task, T existingInstance, ContentManager.ResCallback onDone)
+        private void InnerReadObjectCallback<T>(ContentManager.ResTask task, T existingInstance, ContentManager.ResCallback onDone)
         {
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject 1 " + typeof (T).Name);
 #endif
 
-            var typeReaderIndex = Read7BitEncodedInt ();
+            var typeReaderIndex = Read7BitEncodedInt();
             if (typeReaderIndex == 0)
             {
-                onDone (existingInstance);
+                onDone(existingInstance);
                 return;
             }
 
             if (typeReaderIndex > typeReaders.Length)
-                throw new ContentLoadException ("Incorrect type reader index found!");
+                throw new ContentLoadException("Incorrect type reader index found!");
 
             var typeReader = typeReaders[typeReaderIndex - 1];
 
@@ -268,129 +263,129 @@ namespace Microsoft.Xna.Framework.Content
 
             ContentManager.ResCallback intermed = (callbackRes) =>
             {
-                RecordDisposable (callbackRes);
+                RecordDisposable(callbackRes);
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader InnerReadObject end " + typeof (T).Name);
 #endif
 
-                onDone (callbackRes);
+                onDone(callbackRes);
             };
 
             //typeReader.Read (this, existingInstance);
-            typeReader.ReadCallback (task, this, existingInstance, intermed);          
+            typeReader.ReadCallback(task, this, existingInstance, intermed);
         }
-        
-        public T ReadObject<T> (ContentTypeReader typeReader, T existingInstance)
+
+        public T ReadObject<T>(ContentTypeReader typeReader, T existingInstance)
         {
-            if (!ReflectionHelpers.IsValueType (typeReader.TargetType))
-                return ReadObject (existingInstance);
+            if (!ReflectionHelpers.IsValueType(typeReader.TargetType))
+                return ReadObject(existingInstance);
 
-            var result = (T)typeReader.Read (this, existingInstance);
+            var result = (T)typeReader.Read(this, existingInstance);
 
-            RecordDisposable (result);
+            RecordDisposable(result);
 
             return result;
         }
 
-        public Quaternion ReadQuaternion ()
+        public Quaternion ReadQuaternion()
         {
-            Quaternion result = new Quaternion ();
-            result.X = ReadSingle ();
-            result.Y = ReadSingle ();
-            result.Z = ReadSingle ();
-            result.W = ReadSingle ();
+            Quaternion result = new Quaternion();
+            result.X = ReadSingle();
+            result.Y = ReadSingle();
+            result.Z = ReadSingle();
+            result.W = ReadSingle();
             return result;
         }
 
-        public T ReadRawObject<T> ()
+        public T ReadRawObject<T>()
         {
-            return (T)ReadRawObject<T> (default (T));
+            return (T)ReadRawObject<T>(default(T));
         }
 
-        public T ReadRawObject<T> (ContentTypeReader typeReader)
+        public T ReadRawObject<T>(ContentTypeReader typeReader)
         {
-            return (T)ReadRawObject<T> (typeReader, default (T));
+            return (T)ReadRawObject<T>(typeReader, default(T));
         }
 
-        public T ReadRawObject<T> (T existingInstance)
+        public T ReadRawObject<T>(T existingInstance)
         {
-            Type objectType = typeof (T);
+            Type objectType = typeof(T);
             foreach (ContentTypeReader typeReader in typeReaders)
             {
                 if (typeReader.TargetType == objectType)
-                    return (T)ReadRawObject<T> (typeReader, existingInstance);
+                    return (T)ReadRawObject<T>(typeReader, existingInstance);
             }
-            throw new NotSupportedException ();
+            throw new NotSupportedException();
         }
 
-        public T ReadRawObject<T> (ContentTypeReader typeReader, T existingInstance)
+        public T ReadRawObject<T>(ContentTypeReader typeReader, T existingInstance)
         {
-            return (T)typeReader.Read (this, existingInstance);
+            return (T)typeReader.Read(this, existingInstance);
         }
 
-        public void ReadSharedResource<T> (Action<T> fixup)
+        public void ReadSharedResource<T>(Action<T> fixup)
         {
-            int index = Read7BitEncodedInt ();
+            int index = Read7BitEncodedInt();
             if (index > 0)
             {
-                sharedResourceFixups.Add (new KeyValuePair<int, Action<object>> (index - 1, delegate (object v)
-                      {
-                          if (!(v is T))
-                          {
-                              throw new ContentLoadException (String.Format ("Error loading shared resource. Expected type {0}, received type {1}", typeof (T).Name, v.GetType ().Name));
-                          }
-                          fixup ((T)v);
-                      }));
+                sharedResourceFixups.Add(new KeyValuePair<int, Action<object>>(index - 1, delegate (object v)
+                    {
+                        if (!(v is T))
+                        {
+                            throw new ContentLoadException(String.Format("Error loading shared resource. Expected type {0}, received type {1}", typeof(T).Name, v.GetType().Name));
+                        }
+                        fixup((T)v);
+                    }));
             }
         }
 
-        public Vector2 ReadVector2 ()
+        public Vector2 ReadVector2()
         {
-            Vector2 result = new Vector2 ();
-            result.X = ReadSingle ();
-            result.Y = ReadSingle ();
+            Vector2 result = new Vector2();
+            result.X = ReadSingle();
+            result.Y = ReadSingle();
             return result;
         }
 
-        public Vector3 ReadVector3 ()
+        public Vector3 ReadVector3()
         {
-            Vector3 result = new Vector3 ();
-            result.X = ReadSingle ();
-            result.Y = ReadSingle ();
-            result.Z = ReadSingle ();
+            Vector3 result = new Vector3();
+            result.X = ReadSingle();
+            result.Y = ReadSingle();
+            result.Z = ReadSingle();
             return result;
         }
 
-        public Vector4 ReadVector4 ()
+        public Vector4 ReadVector4()
         {
-            Vector4 result = new Vector4 ();
-            result.X = ReadSingle ();
-            result.Y = ReadSingle ();
-            result.Z = ReadSingle ();
-            result.W = ReadSingle ();
+            Vector4 result = new Vector4();
+            result.X = ReadSingle();
+            result.Y = ReadSingle();
+            result.Z = ReadSingle();
+            result.W = ReadSingle();
             return result;
         }
 
-        public Color ReadColor ()
+        public Color ReadColor()
         {
-            Color result = new Color ();
-            result.R = ReadByte ();
-            result.G = ReadByte ();
-            result.B = ReadByte ();
-            result.A = ReadByte ();
+            Color result = new Color();
+            result.R = ReadByte();
+            result.G = ReadByte();
+            result.B = ReadByte();
+            result.A = ReadByte();
             return result;
         }
 
-        internal new int Read7BitEncodedInt ()
+        internal new int Read7BitEncodedInt()
         {
-            return base.Read7BitEncodedInt ();
+            return base.Read7BitEncodedInt();
         }
 
-        internal BoundingSphere ReadBoundingSphere ()
+        internal BoundingSphere ReadBoundingSphere()
         {
-            var position = ReadVector3 ();
-            var radius = ReadSingle ();
-            return new BoundingSphere (position, radius);
+            var position = ReadVector3();
+            var radius = ReadSingle();
+            return new BoundingSphere(position, radius);
         }
     }
 }

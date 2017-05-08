@@ -29,5 +29,24 @@ namespace Microsoft.Xna.Framework.Content
 
             return new Song(path, durationMs); 
 		}
-	}
+
+        protected internal override void ReadCallback(ContentManager.ResTask task, ContentReader input, Song existingInstance, ContentManager.ResCallback onDone)
+        {
+            var path = input.ReadString();
+
+            if (!String.IsNullOrEmpty(path))
+            {
+                // Add the ContentManager's RootDirectory
+                var dirPath = Path.Combine(input.ContentManager.RootDirectoryFullPath, input.AssetName);
+
+                // Resolve the relative path
+                path = FileHelpers.ResolveRelativePath(dirPath, path);
+            }
+
+            var durationMs = input.ReadObject<int>();
+
+            onDone(new Song(path, durationMs));
+        }
+
+    }
 }

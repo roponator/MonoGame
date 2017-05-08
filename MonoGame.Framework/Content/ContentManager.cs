@@ -272,6 +272,7 @@ namespace Microsoft.Xna.Framework.Content
             {
                 ResCallback intermediaryCallback = (callbackResult) =>
                 {
+
                     // store to manager first, then continue calling users callback
                     lock (lockLoadedAssets)
                     {
@@ -460,13 +461,13 @@ namespace Microsoft.Xna.Framework.Content
         {
             //Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnMainThread");
 
-             m_resourceLoadingTasksMainThread.Enqueue(task);
+            m_resourceLoadingTasksMainThread.Enqueue(task);
             m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
-           // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
+            // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
 
             m_resourceLoadingTasksWorkerThread.Enqueue(task);
             m_workerThreadEvent.Set();
@@ -474,7 +475,7 @@ namespace Microsoft.Xna.Framework.Content
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
         public static int RunTaskFromAnyQueue()
-        {          
+        {
             int numProcessedTasks = 0;
 
             ResTask task = null;
@@ -486,7 +487,7 @@ namespace Microsoft.Xna.Framework.Content
             }
 
             // if no main thread tasks were loaded pick one from worker thread
-            if(numProcessedTasks == 0)
+            if (numProcessedTasks == 0)
             {
                 if (m_resourceLoadingTasksWorkerThread.TryDequeue(out task))
                 {
@@ -502,7 +503,7 @@ namespace Microsoft.Xna.Framework.Content
             return numProcessedTasks;
         }
 
-       public static int RunNextTaskFromMainThreadQueue()
+        public static int RunNextTaskFromMainThreadQueue()
         {
             int numProcessedTasks = 0;
 
@@ -527,7 +528,7 @@ namespace Microsoft.Xna.Framework.Content
         // Spawns loading threads. You MUST call 'FinishMultithreadedLoading' after your resources have been loading so threads are stopped.
         static int xx = 0;
         public static void StartOrContinueMultithreadedLoading()
-        {            
+        {
             // to allow this to be called every frame
             if (m_isMultithreadedLoadingStarted == true)
             {
@@ -536,16 +537,16 @@ namespace Microsoft.Xna.Framework.Content
 
             m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
 
-            if (m_resourceLoadingTasksMainThread.Count>0 || m_resourceLoadingTasksWorkerThread.Count>0)
-           {
+            if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksWorkerThread.Count > 0)
+            {
                 throw new Exception("bug, should both be 0");
             }
             if (m_workerTasks.Count > 0)
             {
                 throw new Exception("bug, should both be 0");
-            }        
+            }
 
-          // We must reset signals
+            // We must reset signals
             m_tasksMainThreadWait.Set();
             m_workerThreadEvent.Set();
 
@@ -558,7 +559,7 @@ namespace Microsoft.Xna.Framework.Content
             {
                 System.Threading.CancellationTokenSource token = new System.Threading.CancellationTokenSource();
 
-               int thisTid =  ++xx;
+                int thisTid = ++xx;
 
                 System.Threading.Tasks.Task threadTask = System.Threading.Tasks.Task.Factory.StartNew(() =>
                  {
@@ -574,12 +575,12 @@ namespace Microsoft.Xna.Framework.Content
                              sw.Start();
                              resTask.Execute();
                              sw.Stop();
-                            addTime("Task: Execute "+ thisTid + ": ", sw.ElapsedMilliseconds);
+                             addTime("Task: Execute " + thisTid + ": ", sw.ElapsedMilliseconds);
 
-                             ++numProcessedTasks; 
+                             ++numProcessedTasks;
                          }
                          else if (token.IsCancellationRequested == false)
-                         {                         
+                         {
                              m_workerThreadEvent.Reset();
                          }
 
@@ -589,10 +590,10 @@ namespace Microsoft.Xna.Framework.Content
                          sw.Stop();
                          addTime("Task: WaitOne" + thisTid + ": ", sw.ElapsedMilliseconds);
 
-                     
+
                      }
 
-                   //  Game.Instance.Window.log("ropo_numTasks", "Tid: "+Environment.CurrentManagedThreadId+": " +numProcessedTasks);
+                     //  Game.Instance.Window.log("ropo_numTasks", "Tid: "+Environment.CurrentManagedThreadId+": " +numProcessedTasks);
 
                  }, token.Token);
 
@@ -605,7 +606,7 @@ namespace Microsoft.Xna.Framework.Content
         public static void FinishMultithreadedLoading()
         {
             // ignore if not running
-            if(m_isMultithreadedLoadingStarted == false)
+            if (m_isMultithreadedLoadingStarted == false)
             {
                 return;
             }
