@@ -374,11 +374,11 @@ namespace Microsoft.Xna.Framework.Content
 
         static List<string> g_plotTimes = new List<string>();
         static object g_lockyPlotTimer = new object();
-        const string g_plotTimerToken_StartEntry = "@{}1";
-        const string g_plotTimerToken_StartText = "@{}2";
-        const string g_plotTimerToken_StartTime = "@{}3";
-        const string g_plotTimerToken_EndTime = "@{}4";
-        const string g_plotTimerToken_EndEntry = "@{}5";
+        const string g_plotTimerToken_StartEntry = "@{a}";
+        const string g_plotTimerToken_StartText = "@{b}";
+        const string g_plotTimerToken_StartTime = "@{c}";
+        const string g_plotTimerToken_EndTime = "@{d}";
+        const string g_plotTimerToken_EndEntry = "@{e}";
         
 #if ROPO_TASK_TIME_PLOT
         public static Stopwatch g_stopwatchPlotTimer = new Stopwatch();
