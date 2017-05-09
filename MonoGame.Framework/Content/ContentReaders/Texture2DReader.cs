@@ -387,6 +387,8 @@ namespace Microsoft.Xna.Framework.Content
             ContentManager.addTime("Texture2DReader::Read",sw1.ElapsedMilliseconds);
 
 #endif
+
+
             ContentManager.ResTask setDataTask = new ContentManager.ResTask((___) =>
             {
 
@@ -403,7 +405,10 @@ namespace Microsoft.Xna.Framework.Content
                 onDone(texture);
                     });
 
-          
+#if ROPO_TASK_TIME_PLOT
+            setDataTask.plotTimeTaskName = "Texture2D SetData"; // todo could be slow?
+#endif
+
             ContentManager.EnqueueResourceLoadingTaskOnMainThread(setDataTask);
                
         }

@@ -88,7 +88,9 @@ namespace Microsoft.Xna.Framework.Content
             InitializeTypeReaders();
 
             ContentManager.ResTask newTask = new ContentManager.ResTask();
-
+#if ROPO_TASK_TIME_PLOT
+            newTask.plotTimeTaskName = "ReadAssetCallback "+typeof(T).Name; // todo could be slow?
+#endif
 
 #if ANDROID && ROPO_PRINT
             Game.Instance.Window.log ("ropo_stopwatch", "ContentReader ReadAsset 1 " + typeof (T).Name);

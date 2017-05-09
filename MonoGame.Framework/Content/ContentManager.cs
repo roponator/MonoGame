@@ -5,6 +5,8 @@
 //#define ROPO_PRINT
 #define ROPO_ADD_TIME // for callback version
 //#define ROPO_ADD_TIME_SINGLE_THREADED // for non callback version
+//#define ROPO_TASK_TIME_WITH_THREAD_ID
+//#define ROPO_TASK_TIME_PLOT
 
 using System;
 using System.Collections.Generic;
@@ -350,32 +352,85 @@ namespace Microsoft.Xna.Framework.Content
 
         }
 
-        public static Dictionary<String, long> times = new Dictionary<string, long>();
-        static object lockyTimer = new object();
+        static Dictionary<String, long> g_times = new Dictionary<string, long>();
+        static object g_lockyTimer = new object();
         public static void addTime(string key, long millis)
         {
 #if ROPO_PRINT
             Android.Util.Log.Info ("ropo_stopwatch", key);
 #endif
-            lock (lockyTimer)
+            lock (g_lockyTimer)
             {
-                if (times.ContainsKey(key) == false)
+                if (g_times.ContainsKey(key) == false)
                 {
-                    times.Add(key, millis);
+                    g_times.Add(key, millis);
                 }
                 else
                 {
-                    times[key] += millis;
+                    g_times[key] += millis;
                 }
             }
         }
+
+        static List<string> g_plotTimes = new List<string>();
+        static object g_lockyPlotTimer = new object();
+        const string g_plotTimerToken_StartEntry = "@{}1";
+        const string g_plotTimerToken_StartText = "@{}2";
+        const string g_plotTimerToken_StartTime = "@{}3";
+        const string g_plotTimerToken_EndTime = "@{}4";
+        const string g_plotTimerToken_EndEntry = "@{}5";
+        
+#if ROPO_TASK_TIME_PLOT
+        public static Stopwatch g_stopwatchPlotTimer = new Stopwatch();
+#endif
+
+        // entry structures: start_token + threadName + start_text_token + text + start_time_token + startTime + end_time_token + end_time + end_token
+        public static void addPlotTime(string threadName, string text, long startTime, long endTime)
+        {
+            lock (g_lockyPlotTimer)
+            {
+                //  todo ropo could this be slow?
+                g_plotTimes.Add(
+                    g_plotTimerToken_StartEntry +
+                   threadName +
+                   g_plotTimerToken_StartText +
+                   text +
+                   g_plotTimerToken_StartTime +
+                   startTime +
+                   g_plotTimerToken_EndTime +
+                   endTime +
+                  g_plotTimerToken_EndEntry);
+            }
+        }
+
+        public static void printPlotTimes()
+        {
+            const string tag = "ropo_plotTimes";
+#if ANDROID
+            Game.Instance.Window.log(tag,"PLOT_TIMES---------------\n");
+#endif
+
+            // print by time usage order
+            foreach (var v in g_plotTimes)
+            {
+#if ANDROID
+                Game.Instance.Window.log(tag, v + "\n"); // would be too large to print otherwise
+#endif           
+            }
+#if ANDROID
+            Game.Instance.Window.log(tag, "PLOT_TIMES END ---------------\n");
+#endif
+         
+
+        }
+
 
         public static void printLoadingTimes()
         {
             String t = "";
 
             // print by time usage order
-            foreach (KeyValuePair<string, long> entry in times.OrderBy(key => key.Value))
+            foreach (KeyValuePair<string, long> entry in g_times.OrderBy(key => key.Value))
             {
                 t += entry.Key + ": " + entry.Value + "\n";
             }
@@ -391,6 +446,10 @@ namespace Microsoft.Xna.Framework.Content
 
         public class ResTask
         {
+#if ROPO_TASK_TIME_PLOT
+            public string plotTimeTaskName = null;
+#endif
+
             ResCallback onExecute = null;
             ResTask next = null; // gets executed immediately after this one, is not appended to queue. Needed for memory optimization
 
@@ -521,12 +580,19 @@ namespace Microsoft.Xna.Framework.Content
             return numProcessedTasks;
         }
 
-        public const int MaxNumTaskThreads = 8; // is capped because texture loading can use up a lot of memory so that we don't run out
+        // public const int MaxNumTaskThreads = 8; // is capped because texture loading can use up a lot of memory so that we don't run out
 
         static bool m_isMultithreadedLoadingStarted = false;
 
+
+       // static Dictionary<int, string> g_plotTimerThreadNames = new Dictionary<int, string>();
+
+
+#if ROPO_TASK_TIME_WITH_THREAD_ID
+        static int globalThreadLogCounter = 0;
+#endif
+
         // Spawns loading threads. You MUST call 'FinishMultithreadedLoading' after your resources have been loading so threads are stopped.
-        static int xx = 0;
         public static void StartOrContinueMultithreadedLoading()
         {
             // to allow this to be called every frame
@@ -534,8 +600,14 @@ namespace Microsoft.Xna.Framework.Content
             {
                 return;
             }
+            else
+            { 
+#if ROPO_TASK_TIME_PLOT
+            g_stopwatchPlotTimer.Start();
+#endif
+            }
 
-            m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
+                m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
 
             if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksWorkerThread.Count > 0)
             {
@@ -553,30 +625,58 @@ namespace Microsoft.Xna.Framework.Content
             m_isMultithreadedLoadingStarted = true;
 
             // start as many tasks as cpu cores
-            int numCPU = Math.Min(System.Environment.ProcessorCount, MaxNumTaskThreads);
+            // int numCPU = Math.Min(System.Environment.ProcessorCount, MaxNumTaskThreads); // no need for limit as task system does the limiting, which is one abstraction level higher
+            int numCPU = System.Environment.ProcessorCount;
+
 
             for (int i = 0; i < numCPU; ++i)
             {
                 System.Threading.CancellationTokenSource token = new System.Threading.CancellationTokenSource();
 
-                int thisTid = ++xx;
+#if ROPO_TASK_TIME_WITH_THREAD_ID
+                int globalThreadIndexCountId = ++globalThreadLogCounter;
+#endif
+
 
                 System.Threading.Tasks.Task threadTask = System.Threading.Tasks.Task.Factory.StartNew(() =>
                  {
-                     Stopwatch sw = new Stopwatch();
+#if ROPO_TASK_TIME_PLOT
 
+                  /*   int tid = System.Environment.CurrentManagedThreadId;
+                     if (g_plotTimerThreadNames.ContainsKey(tid) == false)
+                     {
+                         g_plotTimerThreadNames.Add(tid, "Worker " + tid);
+                     }*/
+                     string threadName = "Worker "+System.Environment.CurrentManagedThreadId;
+#endif
+
+#if ROPO_TASK_TIME_WITH_THREAD_ID
+                     Stopwatch sw = new Stopwatch();
+#endif
                      int numProcessedTasks = 0;
                      while (token.IsCancellationRequested == false)
                      {
                          ResTask resTask = null;
                          if (m_resourceLoadingTasksWorkerThread.TryDequeue(out resTask))
                          {
+#if ROPO_TASK_TIME_WITH_THREAD_ID
                              sw.Reset();
                              sw.Start();
+#endif
+
+#if ROPO_TASK_TIME_PLOT
+                             long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
                              resTask.Execute();
+
+#if ROPO_TASK_TIME_PLOT
+                             addPlotTime(threadName, resTask.plotTimeTaskName == null ? "Task_Execute" : resTask.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+#endif
+
+#if ROPO_TASK_TIME_WITH_THREAD_ID
                              sw.Stop();
                              addTime("Task: Execute " + thisTid + ": ", sw.ElapsedMilliseconds);
-
+#endif
                              ++numProcessedTasks;
                          }
                          else if (token.IsCancellationRequested == false)
@@ -584,12 +684,25 @@ namespace Microsoft.Xna.Framework.Content
                              m_workerThreadEvent.Reset();
                          }
 
+#if ROPO_TASK_TIME_WITH_THREAD_ID
                          sw.Reset();
                          sw.Start();
+#endif
+
+#if ROPO_TASK_TIME_PLOT
+                         long plotStartTime2 = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
+
                          m_workerThreadEvent.WaitOne(); // TODO: CHECK HOW GOOD PARALELLILSM IS, SO THAT ALL THREADS ALL USED AND NOT ONLY ONE
+
+#if ROPO_TASK_TIME_PLOT
+                         addPlotTime(threadName, "Task_Wait", plotStartTime2, g_stopwatchPlotTimer.ElapsedMilliseconds);
+#endif
+
+#if ROPO_TASK_TIME_WITH_THREAD_ID
                          sw.Stop();
                          addTime("Task: WaitOne" + thisTid + ": ", sw.ElapsedMilliseconds);
-
+#endif
 
                      }
 
