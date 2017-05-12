@@ -530,8 +530,8 @@ namespace Microsoft.Xna.Framework.Content
         // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
         // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
         // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
+        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
 
         public static void PrintThreadLoadingState()
         {
@@ -547,14 +547,14 @@ namespace Microsoft.Xna.Framework.Content
         {
             //Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnMainThread");
 
-            m_resourceLoadingTasksMainThread.Enqueue(task);
+            m_resourceLoadingTasksMainThread.Push(task);
             m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
             // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
-            m_resourceLoadingTasksWorkerThread.Enqueue(task);
+            m_resourceLoadingTasksWorkerThread.Push(task);
             m_workerThreadEvent.Set();
         }
 
@@ -563,13 +563,18 @@ namespace Microsoft.Xna.Framework.Content
             return m_resourceLoadingTasksWorkerThread.Count>0;
         }
 
+        public static bool HasAnyMainThreadTasksLeft()
+        {
+            return m_resourceLoadingTasksMainThread.Count > 0;
+        }
+
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
         public static int RunTaskFromAnyQueue()
         {
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
+            if (m_resourceLoadingTasksMainThread.TryPop(out task))
             {
                 task.Execute();
 
@@ -579,7 +584,7 @@ namespace Microsoft.Xna.Framework.Content
             // if no main thread tasks were loaded pick one from worker thread
             if (numProcessedTasks == 0)
             {
-                if (m_resourceLoadingTasksWorkerThread.TryDequeue(out task))
+                if (m_resourceLoadingTasksWorkerThread.TryPop(out task))
                 {
                     task.Execute();
            
@@ -599,7 +604,7 @@ namespace Microsoft.Xna.Framework.Content
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
+            if (m_resourceLoadingTasksMainThread.TryPop(out task))
             {
 #if ANDROID
                 long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
@@ -699,7 +704,7 @@ namespace Microsoft.Xna.Framework.Content
                      while (token.IsCancellationRequested == false)
                      {
                          ResTask resTask = null;
-                         if (m_resourceLoadingTasksWorkerThread.TryDequeue(out resTask))
+                         if (m_resourceLoadingTasksWorkerThread.TryPop(out resTask))
                          {
 #if ROPO_TASK_TIME_WITH_THREAD_ID
                              sw.Reset();

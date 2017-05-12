@@ -55,5 +55,13 @@ namespace Microsoft.Xna.Framework.Content
 
             return effect;
         }
-	}
+
+
+        protected internal override void ReadCallback(ContentManager.ResTask task, ContentReader input, SoundEffect existingInstance, ContentManager.ResCallback onDone)
+        {
+            SoundEffect fx = Read(input, existingInstance);
+            onDone(fx);
+        }
+
+    }
 }
