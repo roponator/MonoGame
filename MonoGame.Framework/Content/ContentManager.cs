@@ -530,13 +530,11 @@ namespace Microsoft.Xna.Framework.Content
         // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
         // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
         // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
-        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
-        static System.Collections.Concurrent.ConcurrentStack<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentStack<ResTask>();
+        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
 
-        public static void PrintThreadLoadingState()
-        {
-            Game.Instance.Window.log("ropo_job", "PrintThreadLoadingState: worker: " + m_resourceLoadingTasksWorkerThread.Count + ", main: " + m_resourceLoadingTasksMainThread.Count);
-        }
+        // high priority queue gets polled first for any tasks before low priority queue.
+        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksLowPriorityWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksHighPriorityWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
 
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
         public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
@@ -547,25 +545,39 @@ namespace Microsoft.Xna.Framework.Content
         {
             //Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnMainThread");
 
-            m_resourceLoadingTasksMainThread.Push(task);
+            m_resourceLoadingTasksMainThread.Enqueue(task);
             m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
             // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
-            m_resourceLoadingTasksWorkerThread.Push(task);
+            m_resourceLoadingTasksLowPriorityWorkerThread.Enqueue(task);
+            m_workerThreadEvent.Set();
+        }
+
+        public static void EnqueueResourceLoadingTaskOnHighPriorityWorkerThread(ResTask task)
+        {
+            // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
+            m_resourceLoadingTasksHighPriorityWorkerThread.Enqueue(task);
             m_workerThreadEvent.Set();
         }
 
         public static bool HasAnyWorkerTasksLeft()
         {
-            return m_resourceLoadingTasksWorkerThread.Count>0;
+            return m_resourceLoadingTasksHighPriorityWorkerThread.Count>0 || m_resourceLoadingTasksLowPriorityWorkerThread.Count>0;
         }
 
         public static bool HasAnyMainThreadTasksLeft()
         {
             return m_resourceLoadingTasksMainThread.Count > 0;
+        }
+
+        public static int GetNumTotalRemainingTaks()
+        {
+            return m_resourceLoadingTasksHighPriorityWorkerThread.Count +
+                m_resourceLoadingTasksLowPriorityWorkerThread.Count +
+                m_resourceLoadingTasksMainThread.Count;
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
@@ -574,17 +586,28 @@ namespace Microsoft.Xna.Framework.Content
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryPop(out task))
+            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
                 task.Execute();
 
                 ++numProcessedTasks;
             }
 
-            // if no main thread tasks were loaded pick one from worker thread
+            // if no main thread tasks were loaded pick one from high priority worker thread
             if (numProcessedTasks == 0)
             {
-                if (m_resourceLoadingTasksWorkerThread.TryPop(out task))
+                if (m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeue(out task))
+                {
+                    task.Execute();
+
+                    ++numProcessedTasks;
+                }
+            }
+
+            // if no main thread tasks were loaded pick one from low priority worker thread
+            if (numProcessedTasks == 0)
+            {
+                if (m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeue(out task))
                 {
                     task.Execute();
            
@@ -604,7 +627,7 @@ namespace Microsoft.Xna.Framework.Content
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryPop(out task))
+            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
 #if ANDROID
                 long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
@@ -656,7 +679,7 @@ namespace Microsoft.Xna.Framework.Content
 
             m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
 
-            if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksWorkerThread.Count > 0)
+            if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksLowPriorityWorkerThread.Count > 0 || m_resourceLoadingTasksHighPriorityWorkerThread.Count > 0)
             {
                 throw new Exception("bug, should both be 0");
             }
@@ -704,8 +727,32 @@ namespace Microsoft.Xna.Framework.Content
                      while (token.IsCancellationRequested == false)
                      {
                          ResTask resTask = null;
-                         if (m_resourceLoadingTasksWorkerThread.TryPop(out resTask))
+                         if (m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeue(out resTask))
                          {
+                             // try running high priority tasks first
+#if ROPO_TASK_TIME_WITH_THREAD_ID
+                             sw.Reset();
+                             sw.Start();
+#endif
+
+#if ROPO_TASK_TIME_PLOT
+                             long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
+                             resTask.Execute();
+
+#if ROPO_TASK_TIME_PLOT
+                             addPlotTime(threadName, resTask.plotTimeTaskName == null ? "Task_Execute" : resTask.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+#endif
+
+#if ROPO_TASK_TIME_WITH_THREAD_ID
+                             sw.Stop();
+                             addTime("Task: Execute " + thisTid + ": ", sw.ElapsedMilliseconds);
+#endif
+                             ++numProcessedTasks;
+                         }
+                         else if (m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeue(out resTask))
+                         {
+                             // try running low priority task
 #if ROPO_TASK_TIME_WITH_THREAD_ID
                              sw.Reset();
                              sw.Start();
