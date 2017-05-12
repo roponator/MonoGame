@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Linq.Expressions;
+using System.Linq;
 using Microsoft.Xna.Framework.Utilities;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -356,6 +358,8 @@ namespace Microsoft.Xna.Framework.Content
         static object g_lockyTimer = new object();
         public static void addTime(string key, long millis)
         {
+          //  Game.Instance.Window.log("ropo", "addTime: "+ key +": "+ millis + "\n");
+
 #if ROPO_PRINT
             Android.Util.Log.Info ("ropo_stopwatch", key);
 #endif
@@ -379,7 +383,7 @@ namespace Microsoft.Xna.Framework.Content
         const string g_plotTimerToken_StartTime = "@{c}";
         const string g_plotTimerToken_EndTime = "@{d}";
         const string g_plotTimerToken_EndEntry = "@{e}";
-        
+
 #if ROPO_TASK_TIME_PLOT
         public static Stopwatch g_stopwatchPlotTimer = new Stopwatch();
 #endif
@@ -387,6 +391,14 @@ namespace Microsoft.Xna.Framework.Content
         // entry structures: start_token + threadName + start_text_token + text + start_time_token + startTime + end_time_token + end_time + end_token
         public static void addPlotTime(string threadName, string text, long startTime, long endTime)
         {
+            // dont print very short times as it can spam console so output dies
+            if((endTime-startTime)<3)
+            {
+                return; 
+            }
+
+          //  Game.Instance.Window.log("ropo", "addPlotTime: "+ threadName+": "+ startTime+", "+endTime+"\n");
+
             lock (g_lockyPlotTimer)
             {
                 //  todo ropo could this be slow?
@@ -411,16 +423,26 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
             // print by time usage order
+            int x = 0;
             foreach (var v in g_plotTimes)
             {
 #if ANDROID
                 Game.Instance.Window.log(tag, v + "\n"); // would be too large to print otherwise
-#endif           
+                ++x;
+
+              /*  if(x>150)
+                {
+                x=0;
+                  System.Threading.Thread.Sleep(300);
+                }*/
+
+#endif
+
             }
 #if ANDROID
             Game.Instance.Window.log(tag, "PLOT_TIMES END ---------------\n");
 #endif
-         
+
 
         }
 
@@ -511,6 +533,11 @@ namespace Microsoft.Xna.Framework.Content
         static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
         static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
 
+        public static void PrintThreadLoadingState()
+        {
+            Game.Instance.Window.log("ropo_job", "PrintThreadLoadingState: worker: " + m_resourceLoadingTasksWorkerThread.Count + ", main: " + m_resourceLoadingTasksMainThread.Count);
+        }
+
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
         public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
         public static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
@@ -527,9 +554,13 @@ namespace Microsoft.Xna.Framework.Content
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
         {
             // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
-
             m_resourceLoadingTasksWorkerThread.Enqueue(task);
             m_workerThreadEvent.Set();
+        }
+
+        public static bool HasAnyWorkerTasksLeft()
+        {
+            return m_resourceLoadingTasksWorkerThread.Count>0;
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
@@ -551,7 +582,7 @@ namespace Microsoft.Xna.Framework.Content
                 if (m_resourceLoadingTasksWorkerThread.TryDequeue(out task))
                 {
                     task.Execute();
-
+           
                     ++numProcessedTasks;
                 }
             }
@@ -562,6 +593,7 @@ namespace Microsoft.Xna.Framework.Content
             return numProcessedTasks;
         }
 
+   
         public static int RunNextTaskFromMainThreadQueue()
         {
             int numProcessedTasks = 0;
@@ -569,8 +601,18 @@ namespace Microsoft.Xna.Framework.Content
             ResTask task = null;
             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
+#if ANDROID
+                long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
                 task.Execute();
 
+#if ANDROID
+                if((g_stopwatchPlotTimer.ElapsedMilliseconds-t1)>30)
+                {
+
+                    ContentManager.addPlotTime("Main Long Tasks", task.plotTimeTaskName, t1, g_stopwatchPlotTimer.ElapsedMilliseconds);
+                }
+#endif
                 ++numProcessedTasks;
             }
 
@@ -585,7 +627,7 @@ namespace Microsoft.Xna.Framework.Content
         static bool m_isMultithreadedLoadingStarted = false;
 
 
-       // static Dictionary<int, string> g_plotTimerThreadNames = new Dictionary<int, string>();
+        // static Dictionary<int, string> g_plotTimerThreadNames = new Dictionary<int, string>();
 
 
 #if ROPO_TASK_TIME_WITH_THREAD_ID
@@ -601,13 +643,13 @@ namespace Microsoft.Xna.Framework.Content
                 return;
             }
             else
-            { 
+            {
 #if ROPO_TASK_TIME_PLOT
             g_stopwatchPlotTimer.Start();
 #endif
             }
 
-                m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
+            m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
 
             if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksWorkerThread.Count > 0)
             {
@@ -735,11 +777,10 @@ namespace Microsoft.Xna.Framework.Content
             m_isMultithreadedLoadingStarted = false;
         }
 
+        // todo ropo: this function can be reverted 99.9% sure
         protected T ReadAsset<T>(string assetName, Action<IDisposable> recordDisposableObject)
         {
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 0: "+typeof(T).Name);
-#endif
+
             if (string.IsNullOrEmpty(assetName))
             {
                 throw new ArgumentNullException("assetName");
@@ -761,131 +802,36 @@ namespace Microsoft.Xna.Framework.Content
                 }
             }
 
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 1");
-#endif
-
-            //  System.Threading.ManualResetEvent e = new System.Threading.ManualResetEvent (false);
-            // 
             // Try to load as XNB file
 
-            //  System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-            //  stopwatchReadAsset.Reset ();
-            //   stopwatchReadAsset.Start ();
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
-#endif
             var stream = OpenStream(assetName);
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+
+            BinaryReader xnbReader = new BinaryReader(stream);
+            ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
+
+            result = reader.ReadAsset<T>();
+
+            if (result is GraphicsResource)
+                ((GraphicsResource)result).Name = originalAssetName;
+
+#if ANDROID
+                   reader.Close(); // monogame used the 'using' statement so they didn't need this
 #endif
 
-            //  stopwatchReadAsset.Stop ();
-            //  addTime ("ContentManager_OpenStream_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-            T res = default(T);
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 2");
+#if ANDROID
+               xnbReader.Close(); // monogame used the 'using' statement so they didn't need this
 #endif
 
-            Action a = new Action(() =>
-           {
+            if (result == null)
+                throw new ContentLoadException("Could not load " + originalAssetName + " asset!");
 
 
-#if ANDROID && ROPO_PRINT
-                Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 1 " + typeof (T).Name);
-#endif
-
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                System.Diagnostics.Stopwatch stopwatchReadAsset = new Stopwatch ();
-                stopwatchReadAsset.Reset ();
-                stopwatchReadAsset.Start ();
-#endif
-               BinaryReader xnbReader = new BinaryReader(stream);
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                stopwatchReadAsset.Stop ();
-                addTime ("ContentManager_new BinaryReader_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-#endif
-
-               {
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                    stopwatchReadAsset.Reset ();
-                    stopwatchReadAsset.Start ();
-#endif
-                   ContentReader reader = GetContentReaderFromXnb(assetName, stream, xnbReader, recordDisposableObject);
-
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                    stopwatchReadAsset.Stop ();
-                    addTime ("ContentManager_GetContentReaderFromXnb_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-#endif
-
-#if ANDROID && ROPO_PRINT
-                    Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 2 " + typeof (T).Name);
-#endif
-                   {
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                        stopwatchReadAsset.Reset ();
-                        stopwatchReadAsset.Start ();
-#endif
-                       result = reader.ReadAsset<T>();
-
-#if ROPO_ADD_TIME_SINGLE_THREADED
-                        stopwatchReadAsset.Stop ();
-                        addTime ("ContentManager_ReadAsset_" + typeof (T).Name, stopwatchReadAsset.ElapsedMilliseconds);
-#endif
-
-#if ANDROID && ROPO_PRINT
-                        Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset Task 3 " + typeof (T).Name);
-#endif
-                       if (result is GraphicsResource)
-                           ((GraphicsResource)result).Name = originalAssetName;
-                   }
-                   reader.Close();
-               }
-               xnbReader.Close();
-
-
-               if (result == null)
-                   throw new ContentLoadException("Could not load " + originalAssetName + " asset!");
-               res = (T)result;
-               // e.Set ();
-
-#if ANDROID && ROPO_PRINT
-                Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset End: " + typeof (T).Name);
-#endif
-
-
-           });
-
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset 3");
-#endif
-
-            // ONLY SINGLE THREADED FOR NOW
-            a();
-            /* if (Threading.IsOnUIThread () == false)
-             {
-                 MyTask t = new MyTask (a);
-
-                 lock (uiThreadTasks)
-                 {
-                     uiThreadTasks.Add (t);
-                 }
-
-             }
-             else
-             {
-                 a ();
-             }*/
-#if ANDROID && ROPO_PRINT
-            Game.Instance.Window.log ("ropo_stopwatch", "ReadAsset end: " + typeof (T).Name);
-#endif
-
-            if (res == null)
+            if (result == null)
             {
                 Game.Instance.Window.log("ropo_stopwatch", "SaladAssetHelper_BatchLoadAllTexturesInPack null tex 1");
 
             }
-            return res;
+            return (T)result;
         }
 
         protected void ReadAssetCallback<T>(ContentManager.ResTask task, string assetName, Action<IDisposable> recordDisposableObject, ResCallback onDone)
@@ -957,9 +903,10 @@ namespace Microsoft.Xna.Framework.Content
                 if (obj is GraphicsResource)
                     ((GraphicsResource)obj).Name = originalAssetName;
 
+#if ANDROID // monogame used the 'using' statement so they didn't need this
                 reader.Close();
-
                 xnbReader.Close();
+#endif
 
                 if (result == null)
                 {
