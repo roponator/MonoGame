@@ -759,8 +759,19 @@ namespace Microsoft.Xna.Framework
         //       Components.ComponentAdded.
         private void InitializeExistingComponents()
         {
-            for(int i = 0; i < Components.Count; ++i)
+            for (int i = 0; i < Components.Count; ++i)
+            {
+/*#if ROPO_TASK_TIME_PLOT
+                long timePlotStart1 = Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif*/
                 Components[i].Initialize();
+
+                /*
+#if ROPO_TASK_TIME_PLOT
+                Microsoft.Xna.Framework.Content.ContentManager.addPlotTime("Game.cs", "InitExComp: "+Components[i].GetType().Name, timePlotStart1, Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds);
+               
+#endif*/
+            }
         }
 
         private void CategorizeComponents()

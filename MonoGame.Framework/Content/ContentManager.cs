@@ -472,16 +472,25 @@ namespace Microsoft.Xna.Framework.Content
             public string plotTimeTaskName = null;
 #endif
 
+        
             ResCallback onExecute = null;
             ResTask next = null; // gets executed immediately after this one, is not appended to queue. Needed for memory optimization
 
-            public ResTask()
+            // long tasks should not be execute on main thread as it can block scheduling work to worker threads
+            public bool CanExecuteOnMainThread
             {
-
+                get;
+                internal set;
             }
 
-            public ResTask(ResCallback onExecute)
+            public ResTask(bool isShortTask)
             {
+                this.CanExecuteOnMainThread = isShortTask;
+            }
+
+            public ResTask(bool isShortTask, ResCallback onExecute)
+            {
+                this.CanExecuteOnMainThread = isShortTask;
                 this.onExecute = onExecute;
             }
 
@@ -581,39 +590,61 @@ namespace Microsoft.Xna.Framework.Content
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
-        public static int RunTaskFromAnyQueue()
+        // Does not run long running tasks marker by 'task.CanExecuteOnMainThread'.
+        public static int TryRunningNextTaskOnMainThread()
         {
             int numProcessedTasks = 0;
 
             ResTask task = null;
+            System.Collections.Concurrent.ConcurrentQueue<ResTask> queueTaskWasRetrievedFrom = null;
+
             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
-                task.Execute();
-
-                ++numProcessedTasks;
+                queueTaskWasRetrievedFrom = m_resourceLoadingTasksMainThread;
             }
 
             // if no main thread tasks were loaded pick one from high priority worker thread
-            if (numProcessedTasks == 0)
+            if (queueTaskWasRetrievedFrom == null || task == null)
             {
                 if (m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeue(out task))
                 {
-                    task.Execute();
-
-                    ++numProcessedTasks;
+                    queueTaskWasRetrievedFrom = m_resourceLoadingTasksHighPriorityWorkerThread;                
                 }
             }
 
             // if no main thread tasks were loaded pick one from low priority worker thread
-            if (numProcessedTasks == 0)
+            if (queueTaskWasRetrievedFrom == null || task == null)
             {
                 if (m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeue(out task))
                 {
-                    task.Execute();
-           
-                    ++numProcessedTasks;
+                    queueTaskWasRetrievedFrom = m_resourceLoadingTasksLowPriorityWorkerThread;                              
                 }
             }
+
+          /*  if (task != null)
+            {
+                task.Execute();
+                ++numProcessedTasks;
+            }*/
+
+            // if task was dequeued and if it can be run by main thread: run it, otherwise put it back to queue it came from.
+             if (queueTaskWasRetrievedFrom != null && task != null &&
+                  (task.CanExecuteOnMainThread || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
+                  )
+              {
+                  task.Execute();
+                  ++numProcessedTasks;
+              }
+              else if(queueTaskWasRetrievedFrom != null && task != null) // shouldn't happen but for sanity
+              {
+                  queueTaskWasRetrievedFrom.Enqueue(task); // put it back if we can't execute it. cannot use peak as some other thread could take it meanwhile
+              }
+  #if DEBUG
+              else
+              {
+                throw new Exception("Error: shouldn't happen, bug in above algorithm");
+              }
+  #endif
 
             // nudge workers
             m_workerThreadEvent.Set();
@@ -629,18 +660,18 @@ namespace Microsoft.Xna.Framework.Content
             ResTask task = null;
             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
-#if ANDROID
+/*#if ANDROID
                 long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
-#endif
-                task.Execute();
+#endif*/
+            task.Execute();
 
-#if ANDROID
+/*#if ANDROID
                 if((g_stopwatchPlotTimer.ElapsedMilliseconds-t1)>30)
                 {
 
                     ContentManager.addPlotTime("Main Long Tasks", task.plotTimeTaskName, t1, g_stopwatchPlotTimer.ElapsedMilliseconds);
                 }
-#endif
+#endif*/
                 ++numProcessedTasks;
             }
 
@@ -696,7 +727,7 @@ namespace Microsoft.Xna.Framework.Content
 
             // start as many tasks as cpu cores
             // int numCPU = Math.Min(System.Environment.ProcessorCount, MaxNumTaskThreads); // no need for limit as task system does the limiting, which is one abstraction level higher
-            int numCPU = System.Environment.ProcessorCount;
+            int numCPU = System.Environment.ProcessorCount - 1; // leave on thread free for main thread
 
 
             for (int i = 0; i < numCPU; ++i)

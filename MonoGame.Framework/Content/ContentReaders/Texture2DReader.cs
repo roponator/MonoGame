@@ -389,7 +389,7 @@ namespace Microsoft.Xna.Framework.Content
 #endif
 
 
-            ContentManager.ResTask setDataTask = new ContentManager.ResTask((___) =>
+            ContentManager.ResTask setDataTask = new ContentManager.ResTask(true,(___) =>
             {
 
                 // 250ms for all textures, neglectable
