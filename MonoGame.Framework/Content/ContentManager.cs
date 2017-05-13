@@ -384,6 +384,11 @@ namespace Microsoft.Xna.Framework.Content
         const string g_plotTimerToken_EndTime = "@{d}";
         const string g_plotTimerToken_EndEntry = "@{e}";
 
+        const string g_plotTimerToken_XYPair_StartEntry = "X{a}";
+        const string g_plotTimerToken_XYPair_StartX = "X{b}";
+        const string g_plotTimerToken_XYPair_StartY = "X{c}";
+        const string g_plotTimerToken_XYPair_EndEntry = "X{d}";
+
 #if ROPO_TASK_TIME_PLOT
         public static Stopwatch g_stopwatchPlotTimer = new Stopwatch();
 #endif
@@ -412,6 +417,23 @@ namespace Microsoft.Xna.Framework.Content
                    g_plotTimerToken_EndTime +
                    endTime +
                   g_plotTimerToken_EndEntry);
+            }
+        }
+
+        public static void addPlotXYPair(string groupName, long x, long y)
+        {
+          
+            lock (g_lockyPlotTimer)
+            {
+                //  todo ropo could this be slow?
+                g_plotTimes.Add(
+                    g_plotTimerToken_XYPair_StartEntry +
+                   groupName +
+                   g_plotTimerToken_XYPair_StartX +
+                   x +
+                   g_plotTimerToken_XYPair_StartY +
+                   y +
+                  g_plotTimerToken_XYPair_EndEntry);
             }
         }
 
@@ -552,7 +574,7 @@ namespace Microsoft.Xna.Framework.Content
 
         public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
         {
-            //Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnMainThread");
+         //   Game.Instance.Window.log("ropo_enq", "EnqueueResourceLoadingTaskOnMainThread");
 
             m_resourceLoadingTasksMainThread.Enqueue(task);
             m_tasksMainThreadWait.Set();
@@ -587,6 +609,17 @@ namespace Microsoft.Xna.Framework.Content
             return m_resourceLoadingTasksHighPriorityWorkerThread.Count +
                 m_resourceLoadingTasksLowPriorityWorkerThread.Count +
                 m_resourceLoadingTasksMainThread.Count;
+        }
+
+        public static int GetNumWorkerThreadRemainingTaks()
+        {
+            return m_resourceLoadingTasksHighPriorityWorkerThread.Count +
+                m_resourceLoadingTasksLowPriorityWorkerThread.Count;
+        }
+
+        public static int GetNumMainThreadRemainingTasks()
+        {
+            return m_resourceLoadingTasksMainThread.Count;
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
@@ -632,8 +665,17 @@ namespace Microsoft.Xna.Framework.Content
                   (task.CanExecuteOnMainThread || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
                   )
               {
-                  task.Execute();
-                  ++numProcessedTasks;
+#if ROPO_TASK_TIME_PLOT
+                long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
+                
+                task.Execute();
+
+#if ROPO_TASK_TIME_PLOT
+                addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Wait Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+# endif
+                
+                ++numProcessedTasks;
               }
               else if(queueTaskWasRetrievedFrom != null && task != null) // shouldn't happen but for sanity
               {
@@ -660,22 +702,15 @@ namespace Microsoft.Xna.Framework.Content
             ResTask task = null;
             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
-                /*
-#if ANDROID
-                long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
-#endif*/
+#if ROPO_TASK_TIME_PLOT
+                long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+#endif
 
-            task.Execute();
+                task.Execute();
 
-                /*
-#if ANDROID
-                long dt = g_stopwatchPlotTimer.ElapsedMilliseconds - t1;
-                if ((g_stopwatchPlotTimer.ElapsedMilliseconds-t1)>1000)
-                {
-                    task.Execute();
-                    ContentManager.addPlotTime("Main Long Tasks", task.plotTimeTaskName, t1, g_stopwatchPlotTimer.ElapsedMilliseconds);
-                }
-#endif*/
+#if ROPO_TASK_TIME_PLOT
+                addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Next Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+# endif
                 ++numProcessedTasks;
             }
 
