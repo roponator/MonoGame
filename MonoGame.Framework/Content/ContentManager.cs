@@ -660,18 +660,20 @@ namespace Microsoft.Xna.Framework.Content
             ResTask task = null;
             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
             {
-/*#if ANDROID
+#if ANDROID
                 long t1 = g_stopwatchPlotTimer.ElapsedMilliseconds;
-#endif*/
+#endif
+
             task.Execute();
 
-/*#if ANDROID
-                if((g_stopwatchPlotTimer.ElapsedMilliseconds-t1)>30)
+#if ANDROID
+                long dt = g_stopwatchPlotTimer.ElapsedMilliseconds - t1;
+                if ((g_stopwatchPlotTimer.ElapsedMilliseconds-t1)>400)
                 {
-
+                    task.Execute();
                     ContentManager.addPlotTime("Main Long Tasks", task.plotTimeTaskName, t1, g_stopwatchPlotTimer.ElapsedMilliseconds);
                 }
-#endif*/
+#endif
                 ++numProcessedTasks;
             }
 
