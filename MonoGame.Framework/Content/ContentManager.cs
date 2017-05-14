@@ -499,7 +499,7 @@ namespace Microsoft.Xna.Framework.Content
             ResTask next = null; // gets executed immediately after this one, is not appended to queue. Needed for memory optimization
 
             // long tasks should not be execute on main thread as it can block scheduling work to worker threads
-            public bool CanExecuteOnMainThread
+            public bool IsShortTask
             {
                 get;
                 internal set;
@@ -507,12 +507,12 @@ namespace Microsoft.Xna.Framework.Content
 
             public ResTask(bool isShortTask)
             {
-                this.CanExecuteOnMainThread = isShortTask;
+                this.IsShortTask = isShortTask;
             }
 
             public ResTask(bool isShortTask, ResCallback onExecute)
             {
-                this.CanExecuteOnMainThread = isShortTask;
+                this.IsShortTask = isShortTask;
                 this.onExecute = onExecute;
             }
 
@@ -555,6 +555,56 @@ namespace Microsoft.Xna.Framework.Content
 
             public System.Threading.Tasks.Task task = null;
             public System.Threading.CancellationTokenSource cancelToken;
+        }
+
+        // Allows skipping items and searching for long/short tasks. The problem with concurrent queues is that
+        // long items are pushed to end of queue when main thread searches for fast tasks to execute so we get 
+        // long tasks at end which causes waiting for other threads.
+        class ConcurrentTaskQueue
+        {
+            private List<ResTask> _items = new List<ResTask>();
+            private object _lock = new object();
+
+            public void Add(ResTask t)
+            {
+                lock(_lock)
+                 {
+                    _items.Add(t);
+                 }
+            }
+
+            // Returns null if none
+            public ResTask DequeueNextShortTask()
+            {
+                lock (_lock)
+                {
+                    for(int i=0;i<_items.Count;++i)
+                    {
+                        ResTask t = _items[i];
+                        if(t.IsShortTask)
+                        {
+                            _items.RemoveAt(i);
+                            return t;
+                        }
+                    }
+                    return null;
+                }
+            }
+
+            // Returns null if none
+            public ResTask DequeueNextTask()
+            {
+                lock (_lock)
+                {
+                    if(_items.Count > 0)
+                    {
+                        ResTask t = _items[0];
+                        _items.RemoveAt(0);
+                        return t;
+                    }
+                    return null;
+                }
+            }
         }
 
         // Using a stack instead of the queue so that the last added tasks gets processed first, otherwise due to the limit of max
@@ -662,7 +712,7 @@ namespace Microsoft.Xna.Framework.Content
 
             // if task was dequeued and if it can be run by main thread: run it, otherwise put it back to queue it came from.
              if (queueTaskWasRetrievedFrom != null && task != null &&
-                  (task.CanExecuteOnMainThread || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
+                  (task.IsShortTask || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
                   )
               {
 #if ROPO_TASK_TIME_PLOT
@@ -695,7 +745,7 @@ namespace Microsoft.Xna.Framework.Content
         }
 
    
-        public static int RunNextTaskFromMainThreadQueue()
+        public static int RunNextTaskFromMainThreadQueue(bool executeOnlyShortTasks)
         {
             int numProcessedTasks = 0;
 
@@ -705,8 +755,17 @@ namespace Microsoft.Xna.Framework.Content
 #if ROPO_TASK_TIME_PLOT
                 long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
 #endif
-
-                task.Execute();
+                // if user wants to execute only short tasks and this is not a short task we must not execute it.
+                if(executeOnlyShortTasks == false  ||
+                    (executeOnlyShortTasks == true && task.IsShortTask == false))
+                {
+                    task.Execute();
+                }
+                else
+                {
+                    // user wants only short tasks and this it a long task: enqueue it again
+                    m_resourceLoadingTasksMainThread.Enqueue(task);
+                }
 
 #if ROPO_TASK_TIME_PLOT
                 addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Next Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);

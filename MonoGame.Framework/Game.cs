@@ -539,8 +539,11 @@ namespace Microsoft.Xna.Framework
             // TODO: This should be removed once all platforms use the new GraphicsDeviceManager
             // 0ms
             applyChanges(graphicsDeviceManager);
-           
- 
+
+            sw.Stop();
+            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 1", sw.ElapsedMilliseconds);
+            sw.Restart();
+
             // According to the information given on MSDN (see link below), all
             // GameComponents in Components at the time Initialize() is called
             // are initialized.
@@ -548,12 +551,16 @@ namespace Microsoft.Xna.Framework
             // Initialize all existing components
             // 300ms
             InitializeExistingComponents();
-
+            sw.Stop();
+            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 2", sw.ElapsedMilliseconds);
+            sw.Restart();
             // 0ms
             _graphicsDeviceService = (IGraphicsDeviceService)
                 Services.GetService(typeof(IGraphicsDeviceService));
 
-
+            sw.Stop();
+            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 3", sw.ElapsedMilliseconds);
+            sw.Restart();
             // 0ms
             if (_graphicsDeviceService != null &&
                 _graphicsDeviceService.GraphicsDevice != null)
@@ -561,8 +568,8 @@ namespace Microsoft.Xna.Framework
                 LoadContent();
             }
             sw.Stop();
-            ContentManager.addTime("Game.cs Initialize -> Initialize ALL", sw.ElapsedMilliseconds);
-
+            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 4", sw.ElapsedMilliseconds);
+            sw.Restart();
         }
 
         private static readonly Action<IDrawable, GameTime> DrawAction =
@@ -761,16 +768,17 @@ namespace Microsoft.Xna.Framework
         {
             for (int i = 0; i < Components.Count; ++i)
             {
-/*#if ROPO_TASK_TIME_PLOT
+#if ROPO_TASK_TIME_PLOT
                 long timePlotStart1 = Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds;
-#endif*/
+#endif
+                Game.Instance.Window.log("ropo_cc", "Index a: " + i +": "+ ContentManager.GetNumTotalRemainingTaks());
                 Components[i].Initialize();
+                Game.Instance.Window.log("ropo_cc", "Index b: " + i + ": " + ContentManager.GetNumTotalRemainingTaks());
 
-                /*
 #if ROPO_TASK_TIME_PLOT
                 Microsoft.Xna.Framework.Content.ContentManager.addPlotTime("Game.cs", "InitExComp: "+Components[i].GetType().Name, timePlotStart1, Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds);
                
-#endif*/
+#endif
             }
         }
 
