@@ -557,24 +557,42 @@ namespace Microsoft.Xna.Framework.Content
             public System.Threading.CancellationTokenSource cancelToken;
         }
 
-        // Allows skipping items and searching for long/short tasks. The problem with concurrent queues is that
-        // long items are pushed to end of queue when main thread searches for fast tasks to execute so we get 
-        // long tasks at end which causes waiting for other threads.
+        // Allows searching for short tasks without having to enqueue long tasks at the end of the queue. 
+        // The problem with vanilla C# concurrent queues is that long items are pushed to end of queue when main thread searches
+        //for fast tasks to execute so we get long tasks at end which causes waiting for other threads.
         class ConcurrentTaskQueue
         {
             private List<ResTask> _items = new List<ResTask>();
             private object _lock = new object();
 
-            public void Add(ResTask t)
+            public void Enqueue(ResTask t, bool enqueueAtFront = false)
             {
                 lock(_lock)
                  {
-                    _items.Add(t);
+                    if(enqueueAtFront)
+                    {
+                        _items.Insert(0, t);
+                    }
+                    else
+                    {
+                        _items.Add(t);
+                    }            
                  }
             }
 
-            // Returns null if none
-            public ResTask DequeueNextShortTask()
+            public int Count
+            {
+                get
+                {
+                    lock (_lock)
+                    {
+                        return _items.Count;
+                    }
+                }
+            }
+
+            // Returns null if none. This is where the magic happens as it doesn't push long tasks on end of the queue.
+            public bool TryDequeueShortTask(out ResTask outTask)
             {
                 lock (_lock)
                 {
@@ -584,15 +602,19 @@ namespace Microsoft.Xna.Framework.Content
                         if(t.IsShortTask)
                         {
                             _items.RemoveAt(i);
-                            return t;
+                            outTask = t;
+                            return true;
                         }
                     }
-                    return null;
+
+                    // no more items
+                    outTask = null;
+                    return false;
                 }
             }
 
             // Returns null if none
-            public ResTask DequeueNextTask()
+            public bool TryDequeue(out ResTask outTask)
             {
                 lock (_lock)
                 {
@@ -600,9 +622,13 @@ namespace Microsoft.Xna.Framework.Content
                     {
                         ResTask t = _items[0];
                         _items.RemoveAt(0);
-                        return t;
+                        outTask = t;
+                        return true;
                     }
-                    return null;
+
+                    // no more items
+                    outTask = null;
+                    return false;
                 }
             }
         }
@@ -611,36 +637,36 @@ namespace Microsoft.Xna.Framework.Content
         // tasks being executed at same time it will never finish as tasks that are required to be executed in order for some other task
         // to finish will be pushed to end of the queue, so they will never get executed because the queue items won't get processed
         // since the tasks that were added to the end of the queue would need to be processed first for the entire task to finish.
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksMainThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        static ConcurrentTaskQueue m_resourceLoadingTasksMainThread = new ConcurrentTaskQueue();
 
         // high priority queue gets polled first for any tasks before low priority queue.
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksLowPriorityWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
-        static System.Collections.Concurrent.ConcurrentQueue<ResTask> m_resourceLoadingTasksHighPriorityWorkerThread = new System.Collections.Concurrent.ConcurrentQueue<ResTask>();
+        static ConcurrentTaskQueue m_resourceLoadingTasksLowPriorityWorkerThread = new ConcurrentTaskQueue();
+        static ConcurrentTaskQueue m_resourceLoadingTasksHighPriorityWorkerThread = new ConcurrentTaskQueue();
 
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
         public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
         public static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
         static System.Threading.SynchronizationContext m_mainThreadSyncContext = null;
 
-        public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task)
+        public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task, bool enqueueAtFront = false)
         {
          //   Game.Instance.Window.log("ropo_enq", "EnqueueResourceLoadingTaskOnMainThread");
-
-            m_resourceLoadingTasksMainThread.Enqueue(task);
+          DID FORCE ENQUEUE DOESNT WORK WELL
+            m_resourceLoadingTasksMainThread.Enqueue(task, enqueueAtFront);
             m_tasksMainThreadWait.Set();
         }
 
-        public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task)
+        public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task, bool enqueueAtFront = false)
         {
             // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
-            m_resourceLoadingTasksLowPriorityWorkerThread.Enqueue(task);
+            m_resourceLoadingTasksLowPriorityWorkerThread.Enqueue(task, enqueueAtFront);
             m_workerThreadEvent.Set();
         }
 
-        public static void EnqueueResourceLoadingTaskOnHighPriorityWorkerThread(ResTask task)
+        public static void EnqueueResourceLoadingTaskOnHighPriorityWorkerThread(ResTask task, bool enqueueAtFront)
         {
             // Game.Instance.Window.log("ropo_stopwatch", "EnqueueResourceLoadingTaskOnWorkerThread");
-            m_resourceLoadingTasksHighPriorityWorkerThread.Enqueue(task);
+            m_resourceLoadingTasksHighPriorityWorkerThread.Enqueue(task, enqueueAtFront);
             m_workerThreadEvent.Set();
         }
 
@@ -674,98 +700,134 @@ namespace Microsoft.Xna.Framework.Content
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
         // Does not run long running tasks marker by 'task.CanExecuteOnMainThread'.
-        public static int TryRunningNextTaskOnMainThread()
+        public static int TryRunningMainThreadEnqueuedOrShortWorkerTask()
         {
-            int numProcessedTasks = 0;
+            /* int numProcessedTasks = 0;
 
-            ResTask task = null;
-            System.Collections.Concurrent.ConcurrentQueue<ResTask> queueTaskWasRetrievedFrom = null;
+             ResTask task = null;
+             System.Collections.Concurrent.ConcurrentQueue<ResTask> queueTaskWasRetrievedFrom = null;
 
-            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
-            {
-                queueTaskWasRetrievedFrom = m_resourceLoadingTasksMainThread;
-            }
+             if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
+             {
+                 queueTaskWasRetrievedFrom = m_resourceLoadingTasksMainThread;
+             }
 
-            // if no main thread tasks were loaded pick one from high priority worker thread
-            if (queueTaskWasRetrievedFrom == null || task == null)
-            {
-                if (m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeue(out task))
-                {
-                    queueTaskWasRetrievedFrom = m_resourceLoadingTasksHighPriorityWorkerThread;                
-                }
-            }
+             // if no main thread tasks were loaded pick one from high priority worker thread
+             if (queueTaskWasRetrievedFrom == null || task == null)
+             {
+                 if (m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeue(out task))
+                 {
+                     queueTaskWasRetrievedFrom = m_resourceLoadingTasksHighPriorityWorkerThread;                
+                 }
+             }
 
-            // if no main thread tasks were loaded pick one from low priority worker thread
-            if (queueTaskWasRetrievedFrom == null || task == null)
-            {
-                if (m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeue(out task))
-                {
-                    queueTaskWasRetrievedFrom = m_resourceLoadingTasksLowPriorityWorkerThread;                              
-                }
-            }
+             // if no main thread tasks were loaded pick one from low priority worker thread
+             if (queueTaskWasRetrievedFrom == null || task == null)
+             {
+                 if (m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeue(out task))
+                 {
+                     queueTaskWasRetrievedFrom = m_resourceLoadingTasksLowPriorityWorkerThread;                              
+                 }
+             }
 
-          /*  if (task != null)
-            {
-                task.Execute();
-                ++numProcessedTasks;
-            }*/
 
-            // if task was dequeued and if it can be run by main thread: run it, otherwise put it back to queue it came from.
-             if (queueTaskWasRetrievedFrom != null && task != null &&
-                  (task.IsShortTask || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
-                  )
-              {
+
+             // if task was dequeued and if it can be run by main thread: run it, otherwise put it back to queue it came from.
+              if (queueTaskWasRetrievedFrom != null && task != null &&
+                   (task.IsShortTask || queueTaskWasRetrievedFrom == m_resourceLoadingTasksMainThread) // always execute tasks dequeued from main thread
+                   )
+               {
+ #if ROPO_TASK_TIME_PLOT
+                 long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+ #endif
+
+                 task.Execute();
+
+ #if ROPO_TASK_TIME_PLOT
+                 addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Wait Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+ # endif
+
+                 ++numProcessedTasks;
+               }
+               else if(queueTaskWasRetrievedFrom != null && task != null) // shouldn't happen but for sanity
+               {
+                   queueTaskWasRetrievedFrom.Enqueue(task); // put it back if we can't execute it. cannot use peak as some other thread could take it meanwhile
+               }
+   #if DEBUG
+               else
+               {
+                 throw new Exception("Error: shouldn't happen, bug in above algorithm");
+               }
+   #endif
+
+             // nudge workers
+             m_workerThreadEvent.Set();
+             return numProcessedTasks;
+             
+             */
+
+
+             int numProcessedTasks = 0;
+           ResTask task = null;
+
+            m_resourceLoadingTasksMainThread.TryDequeue(out task);
+    
+           // if no main thread tasks were loaded pick one from high priority worker thread
+           if ( task == null)
+           {
+                m_resourceLoadingTasksHighPriorityWorkerThread.TryDequeueShortTask(out task);
+           }
+
+           // if no main thread tasks were loaded pick one from low priority worker thread
+           if (task == null)
+           {
+                m_resourceLoadingTasksLowPriorityWorkerThread.TryDequeueShortTask(out task);
+           }
+
+           // if task was dequeued and if it can be run by main thread: run it, otherwise put it back to queue it came from.
+            if ( task != null)
+             {
 #if ROPO_TASK_TIME_PLOT
-                long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
+               long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
 #endif
-                
-                task.Execute();
+
+               task.Execute();
 
 #if ROPO_TASK_TIME_PLOT
-                addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Wait Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
+               addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Wait Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
 # endif
-                
-                ++numProcessedTasks;
-              }
-              else if(queueTaskWasRetrievedFrom != null && task != null) // shouldn't happen but for sanity
-              {
-                  queueTaskWasRetrievedFrom.Enqueue(task); // put it back if we can't execute it. cannot use peak as some other thread could take it meanwhile
-              }
-  #if DEBUG
-              else
-              {
-                throw new Exception("Error: shouldn't happen, bug in above algorithm");
-              }
-  #endif
 
-            // nudge workers
-            m_workerThreadEvent.Set();
+               ++numProcessedTasks;
+             }
+            
 
-            return numProcessedTasks;
+           // nudge workers
+           m_workerThreadEvent.Set();
+
+           return numProcessedTasks;
         }
 
-   
+
         public static int RunNextTaskFromMainThreadQueue(bool executeOnlyShortTasks)
         {
             int numProcessedTasks = 0;
 
             ResTask task = null;
-            if (m_resourceLoadingTasksMainThread.TryDequeue(out task))
+            if(executeOnlyShortTasks)
+            {
+                m_resourceLoadingTasksMainThread.TryDequeueShortTask(out task);
+            }
+            else
+            {
+                m_resourceLoadingTasksMainThread.TryDequeue(out task);
+            }
+            
+            if(task != null)
             {
 #if ROPO_TASK_TIME_PLOT
                 long plotStartTimeInner = g_stopwatchPlotTimer.ElapsedMilliseconds;
 #endif
-                // if user wants to execute only short tasks and this is not a short task we must not execute it.
-                if(executeOnlyShortTasks == false  ||
-                    (executeOnlyShortTasks == true && task.IsShortTask == false))
-                {
-                    task.Execute();
-                }
-                else
-                {
-                    // user wants only short tasks and this it a long task: enqueue it again
-                    m_resourceLoadingTasksMainThread.Enqueue(task);
-                }
+                task.Execute();        
 
 #if ROPO_TASK_TIME_PLOT
                 addPlotTime("Main Task", task.plotTimeTaskName == null ? "Main Next Task" : task.plotTimeTaskName, plotStartTimeInner, g_stopwatchPlotTimer.ElapsedMilliseconds);
