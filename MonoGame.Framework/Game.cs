@@ -769,14 +769,16 @@ namespace Microsoft.Xna.Framework
             for (int i = 0; i < Components.Count; ++i)
             {
 #if ROPO_TASK_TIME_PLOT
-                long timePlotStart1 = Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds;
+                //  long timePlotStart1 = Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds;
 #endif
-                Game.Instance.Window.log("ropo_cc", "Index a: " + i +": "+ ContentManager.GetNumTotalRemainingTaks());
+                //Game.Instance.Window.log("ropo_cc", "Index a: " + i +": "+ ContentManager.GetNumTotalRemainingTaks());
+
                 Components[i].Initialize();
-                Game.Instance.Window.log("ropo_cc", "Index b: " + i + ": " + ContentManager.GetNumTotalRemainingTaks());
+             
+                //  Game.Instance.Window.log("ropo_cc", "Index b: " + i + ": " + ContentManager.GetNumTotalRemainingTaks());
 
 #if ROPO_TASK_TIME_PLOT
-                Microsoft.Xna.Framework.Content.ContentManager.addPlotTime("Game.cs", "InitExComp: "+Components[i].GetType().Name, timePlotStart1, Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds);
+               // Microsoft.Xna.Framework.Content.ContentManager.addPlotTime("Game.cs", "InitExComp: "+Components[i].GetType().Name, timePlotStart1, Microsoft.Xna.Framework.Content.ContentManager.g_stopwatchPlotTimer.ElapsedMilliseconds);
                
 #endif
             }

@@ -476,13 +476,8 @@ namespace Microsoft.Xna.Framework.Content
             // print by time usage order
             foreach (KeyValuePair<string, long> entry in g_times.OrderBy(key => key.Value))
             {
-                t += entry.Key + ": " + entry.Value + "\n";
+                Game.Instance.Window.log("ropo_stopwatch", entry.Key + ": " + entry.Value + "\n");
             }
-
-
-#if ANDROID
-            Game.Instance.Window.log("ropo_stopwatch", t);
-#endif
         }
 
         //  public delegate void ResCallback<T> (T result);
@@ -591,6 +586,28 @@ namespace Microsoft.Xna.Framework.Content
                 }
             }
 
+            public int CountLongTasks
+            {
+                get
+                {
+                    lock (_lock)
+                    {
+                        int n = 0;
+                        for (int i = 0; i < _items.Count; ++i)
+                        {
+                            ResTask t = _items[i];
+                            if (t.IsShortTask == false)
+                            {
+                                ++n;
+                            }
+                        }
+                        return n;
+                    }
+                }
+            }
+
+            
+
             // Returns null if none. This is where the magic happens as it doesn't push long tasks on end of the queue.
             public bool TryDequeueShortTask(out ResTask outTask)
             {
@@ -651,7 +668,7 @@ namespace Microsoft.Xna.Framework.Content
         public static void EnqueueResourceLoadingTaskOnMainThread(ResTask task, bool enqueueAtFront = false)
         {
          //   Game.Instance.Window.log("ropo_enq", "EnqueueResourceLoadingTaskOnMainThread");
-          DID FORCE ENQUEUE DOESNT WORK WELL
+        
             m_resourceLoadingTasksMainThread.Enqueue(task, enqueueAtFront);
             m_tasksMainThreadWait.Set();
         }
@@ -696,6 +713,11 @@ namespace Microsoft.Xna.Framework.Content
         public static int GetNumMainThreadRemainingTasks()
         {
             return m_resourceLoadingTasksMainThread.Count;
+        }
+
+        public static int GetNumLongTasksOnMainThread()
+        {
+            return m_resourceLoadingTasksMainThread.CountLongTasks;
         }
 
         // return num tasks it processed, first tries to read from main task queue, if none it tried from multithreaded task queue.
