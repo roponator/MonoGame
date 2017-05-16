@@ -284,7 +284,7 @@ namespace Microsoft.Xna.Framework.Content
                         levelDataSizeInBytes[level] = reader.ReadInt32();
 
 #if ROPO_TASK_TIME_PLOT
-                ++xx;  MST TEXTURES ARE <1MB, MAKE POOLS OF DIFFERENT BUFFER SIZES?
+                ++xx; 
             ContentManager.addPlotXYPair("size",xx,levelDataSizeInBytes[level]);
 #endif
 
