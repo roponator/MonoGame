@@ -419,10 +419,11 @@ namespace Microsoft.Xna.Framework
 
         public void Tick()
         {
-            // NOTE: This code is very sensitive and can break very badly
-            // with even what looks like a safe change.  Be sure to test 
-            // any change fully in both the fixed and variable timestep 
-            // modes across multiple devices and platforms.
+
+        // NOTE: This code is very sensitive and can break very badly
+        // with even what looks like a safe change.  Be sure to test 
+        // any change fully in both the fixed and variable timestep 
+        // modes across multiple devices and platforms.
 
         RetryTick:
 
@@ -501,6 +502,7 @@ namespace Microsoft.Xna.Framework
                 DoUpdate(_gameTime);
             }
 
+
             // Draw unless the update suppressed it.
             if (_suppressDraw)
                 _suppressDraw = false;
@@ -511,6 +513,8 @@ namespace Microsoft.Xna.Framework
 
             if (_shouldExit)
                 Platform.Exit();
+
+
         }
 
         #endregion
@@ -606,9 +610,9 @@ namespace Microsoft.Xna.Framework
 			Raise(Deactivated, args);
 		}
 
-        #endregion Protected Methods
+#endregion Protected Methods
 
-        #region Event Handlers
+#region Event Handlers
 
         private void Components_ComponentAdded(
             object sender, GameComponentCollectionEventArgs e)
@@ -643,9 +647,9 @@ namespace Microsoft.Xna.Framework
         }
 #endif
 
-        #endregion Event Handlers
+#endregion Event Handlers
 
-        #region Internal Methods
+#region Internal Methods
 
         // FIXME: We should work toward eliminating internal methods.  They
         //        break entirely the possibility that additional platforms could
@@ -695,6 +699,7 @@ namespace Microsoft.Xna.Framework
                 Draw(gameTime);
                 EndDraw();
             }
+
         }
 
         internal void DoInitialize()
@@ -744,7 +749,7 @@ namespace Microsoft.Xna.Framework
 			UnloadContent();
 		}
 
-        #endregion Internal Methods
+#endregion Internal Methods
 
         internal GraphicsDeviceManager graphicsDeviceManager
         {

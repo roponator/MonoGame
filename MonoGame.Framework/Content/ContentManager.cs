@@ -661,7 +661,7 @@ namespace Microsoft.Xna.Framework.Content
         static ConcurrentTaskQueue m_resourceLoadingTasksHighPriorityWorkerThread = new ConcurrentTaskQueue();
 
         static List<WorkerTask> m_workerTasks = new List<WorkerTask>();
-        public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
+       // public static System.Threading.AutoResetEvent m_tasksMainThreadWait = new System.Threading.AutoResetEvent(true);
         public static System.Threading.ManualResetEvent m_workerThreadEvent = new System.Threading.ManualResetEvent(true);
         static System.Threading.SynchronizationContext m_mainThreadSyncContext = null;
 
@@ -670,7 +670,7 @@ namespace Microsoft.Xna.Framework.Content
          //   Game.Instance.Window.log("ropo_enq", "EnqueueResourceLoadingTaskOnMainThread");
         
             m_resourceLoadingTasksMainThread.Enqueue(task, enqueueAtFront);
-            m_tasksMainThreadWait.Set();
+            //m_tasksMainThreadWait.Set();
         }
 
         public static void EnqueueResourceLoadingTaskOnWorkerThread(ResTask task, bool enqueueAtFront = false)
@@ -902,7 +902,7 @@ namespace Microsoft.Xna.Framework.Content
             }
 
             // We must reset signals
-            m_tasksMainThreadWait.Set();
+          //  m_tasksMainThreadWait.Set();
             m_workerThreadEvent.Set();
 
             m_isMultithreadedLoadingStarted = true;

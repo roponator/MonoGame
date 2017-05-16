@@ -48,7 +48,7 @@ namespace Microsoft.Xna.Framework
         public MonoGameAndroidGameView GameView { get; private set; }
         internal IResumeManager Resumer;
 
-        private readonly Game _game;
+        public readonly Game _game;
         private Rectangle _clientBounds;
         private DisplayOrientation _supportedOrientations = DisplayOrientation.Default;
         private DisplayOrientation _currentOrientation;
@@ -88,7 +88,7 @@ namespace Microsoft.Xna.Framework
 
         #region AndroidGameView Methods
 
-        private void OnRenderFrame(object sender, FrameEventArgs frameEventArgs)
+        public void OnRenderFrame(object sender, FrameEventArgs frameEventArgs)
         {
             if (GameView.GraphicsContext == null || GameView.GraphicsContext.IsDisposed)
                 return;
@@ -99,7 +99,7 @@ namespace Microsoft.Xna.Framework
             Threading.Run();
         }
 
-        private void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
+        public void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
         {
             if(threadReadyForStopwatch == false)
             {

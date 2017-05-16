@@ -214,6 +214,10 @@ namespace Microsoft.Xna.Framework.Content
 
         }
 
+        #if ROPO_TASK_TIME_PLOT
+        int xx = 0; // todo remove
+#endif
+
         protected internal override void ReadCallback(ContentManager.ResTask task, ContentReader reader, Texture2D existingInstance, ContentManager.ResCallback onDone)
         {
             Texture2D texture = null;
@@ -278,9 +282,16 @@ namespace Microsoft.Xna.Framework.Content
                     for (int level = 0; level < levelCount; level++)
                     {
                         levelDataSizeInBytes[level] = reader.ReadInt32();
-               
+
+#if ROPO_TASK_TIME_PLOT
+                ++xx;  MST TEXTURES ARE <1MB, MAKE POOLS OF DIFFERENT BUFFER SIZES?
+            ContentManager.addPlotXYPair("size",xx,levelDataSizeInBytes[level]);
+#endif
+
+
+
                 // TODO REUSE THIS DATA
-                       levelData[level] =  new byte[levelDataSizeInBytes[level]]; // reader.ContentManager.GetScratchBuffer(levelDataSizeInBytes[level]);
+                levelData[level] =  new byte[levelDataSizeInBytes[level]]; // reader.ContentManager.GetScratchBuffer(levelDataSizeInBytes[level]);
                         reader.Read(levelData[level], 0, levelDataSizeInBytes[level]);
 
                         int levelWidth = width >> level;
