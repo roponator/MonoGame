@@ -892,6 +892,8 @@ namespace Microsoft.Xna.Framework.Content
 
             m_mainThreadSyncContext = System.Threading.SynchronizationContext.Current;
 
+            // todo: uncomment this if not using "stop" work
+            /*
             if (m_resourceLoadingTasksMainThread.Count > 0 || m_resourceLoadingTasksLowPriorityWorkerThread.Count > 0 || m_resourceLoadingTasksHighPriorityWorkerThread.Count > 0)
             {
                 throw new Exception("bug, should both be 0");
@@ -899,7 +901,7 @@ namespace Microsoft.Xna.Framework.Content
             if (m_workerTasks.Count > 0)
             {
                 throw new Exception("bug, should both be 0");
-            }
+            }*/
 
             // We must reset signals
           //  m_tasksMainThreadWait.Set();
