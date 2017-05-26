@@ -30,7 +30,7 @@ namespace Microsoft.Xna.Framework.Content
             return new Song(path, durationMs); 
 		}
 
-        protected internal override void ReadCallback(ContentManager.ResTask task, ContentReader input, Song existingInstance, ContentManager.ResCallback onDone)
+      /*  protected internal override void ReadCallback(SaladMonogameContentManager.ResTask task, ContentReader input, Song existingInstance, SaladMonogameContentManager.ResCallback onDone)
         {
             var path = input.ReadString();
 
@@ -46,7 +46,7 @@ namespace Microsoft.Xna.Framework.Content
             var durationMs = input.ReadObject<int>();
 
             onDone(new Song(path, durationMs));
-        }
+        }*/
 
     }
 }

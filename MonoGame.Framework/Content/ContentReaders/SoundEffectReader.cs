@@ -57,11 +57,11 @@ namespace Microsoft.Xna.Framework.Content
         }
 
 
-        protected internal override void ReadCallback(ContentManager.ResTask task, ContentReader input, SoundEffect existingInstance, ContentManager.ResCallback onDone)
+      /* protected internal override void ReadCallback(SaladMonogameContentManager.ResTask task, ContentReader input, SoundEffect existingInstance, SaladMonogameContentManager.ResCallback onDone)
         {
             SoundEffect fx = Read(input, existingInstance);
             onDone(fx);
-        }
+        }*/
 
     }
 }

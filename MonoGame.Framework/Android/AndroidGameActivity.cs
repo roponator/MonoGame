@@ -52,6 +52,7 @@ namespace Microsoft.Xna.Framework
 		{
 			// we need to refresh the viewport here.
 			base.OnConfigurationChanged (newConfig);
+
 		}
 
         protected override void OnPause()

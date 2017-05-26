@@ -43,15 +43,15 @@ using System.IO;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-	internal static class DxtUtil
+    public static class DxtUtil
 	{
-		internal static byte[] DecompressDxt1(byte[] imageData, int width, int height)
+        public static byte[] DecompressDxt1(byte[] imageData, int width, int height)
         {
             using (MemoryStream imageStream = new MemoryStream(imageData))
                 return DecompressDxt1(imageStream, width, height);
         }
 
-        internal static byte[] DecompressDxt1(Stream imageStream, int width, int height)
+        public static byte[] DecompressDxt1(Stream imageStream, int width, int height)
         {
             byte[] imageData = new byte[width * height * 4];
 
@@ -72,7 +72,7 @@ namespace Microsoft.Xna.Framework.Graphics
             return imageData;
         }
 
-        private static void DecompressDxt1Block(BinaryReader imageReader, int x, int y, int blockCountX, int width, int height, byte[] imageData)
+        public static void DecompressDxt1Block(BinaryReader imageReader, int x, int y, int blockCountX, int width, int height, byte[] imageData)
         {
             ushort c0 = imageReader.ReadUInt16();
             ushort c1 = imageReader.ReadUInt16();
@@ -158,14 +158,14 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
 			}
         }
-        
-        internal static byte[] DecompressDxt3(byte[] imageData, int width, int height)
+
+        public static byte[] DecompressDxt3(byte[] imageData, int width, int height)
         {
             using (MemoryStream imageStream = new MemoryStream(imageData))
                 return DecompressDxt3(imageStream, width, height);
         }
 
-        internal static byte[] DecompressDxt3(Stream imageStream, int width, int height)
+        public static byte[] DecompressDxt3(Stream imageStream, int width, int height)
         {
             byte[] imageData = new byte[width * height * 4];
 
@@ -306,14 +306,14 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
             }
         }
-		
-        internal static byte[] DecompressDxt5(byte[] imageData, int width, int height)
+
+        public static byte[] DecompressDxt5(byte[] imageData, int width, int height)
         {
             using (MemoryStream imageStream = new MemoryStream(imageData))
                 return DecompressDxt5(imageStream, width, height);
         }
-        
-        internal static byte[] DecompressDxt5(Stream imageStream, int width, int height)
+
+        public static byte[] DecompressDxt5(Stream imageStream, int width, int height)
 		{
             byte[] imageData = new byte[width * height * 4];
 
@@ -334,7 +334,7 @@ namespace Microsoft.Xna.Framework.Graphics
             return imageData;
         }
 
-        private static void DecompressDxt5Block(BinaryReader imageReader, int x, int y, int blockCountX, int width, int height, byte[] imageData)
+        public static void DecompressDxt5Block(BinaryReader imageReader, int x, int y, int blockCountX, int width, int height, byte[] imageData)
         {
             byte alpha0 = imageReader.ReadByte();
             byte alpha1 = imageReader.ReadByte();
@@ -426,8 +426,8 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
             }
         }
-        		
-		private static void ConvertRgb565ToRgb888(ushort color, out byte r, out byte g, out byte b)
+
+        public static void ConvertRgb565ToRgb888(ushort color, out byte r, out byte g, out byte b)
 		{
 			int temp;
 
