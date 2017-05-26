@@ -535,45 +535,28 @@ namespace Microsoft.Xna.Framework
 
         protected virtual void Initialize()
         {
-            System.Diagnostics.Stopwatch sw = new Stopwatch();
 
-            sw.Reset();
-            sw.Start();
-          
-            // TODO: This should be removed once all platforms use the new GraphicsDeviceManager
-            // 0ms
             applyChanges(graphicsDeviceManager);
 
-            sw.Stop();
-            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 1", sw.ElapsedMilliseconds);
-            sw.Restart();
 
             // According to the information given on MSDN (see link below), all
             // GameComponents in Components at the time Initialize() is called
             // are initialized.
             // http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.game.initialize.aspx
             // Initialize all existing components
-            // 300ms
+
             InitializeExistingComponents();
-            sw.Stop();
-            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 2", sw.ElapsedMilliseconds);
-            sw.Restart();
-            // 0ms
+
             _graphicsDeviceService = (IGraphicsDeviceService)
                 Services.GetService(typeof(IGraphicsDeviceService));
 
-            sw.Stop();
-            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 3", sw.ElapsedMilliseconds);
-            sw.Restart();
-            // 0ms
+
             if (_graphicsDeviceService != null &&
                 _graphicsDeviceService.GraphicsDevice != null)
             {
                 LoadContent();
             }
-            sw.Stop();
-            ContentManager.addTime("Game.cs Initialize -> Initialize ALL 4", sw.ElapsedMilliseconds);
-            sw.Restart();
+
         }
 
         private static readonly Action<IDrawable, GameTime> DrawAction =
@@ -718,11 +701,6 @@ namespace Microsoft.Xna.Framework
           // 33ms
             Platform.BeforeInitialize();
 
-            sw.Stop();
-            ContentManager.addTime("Game.cs DoInitialize -> Part 1", sw.ElapsedMilliseconds);
-
-            sw.Reset();
-            sw.Start();
 
             // 1100ms
             Initialize();
@@ -738,8 +716,6 @@ namespace Microsoft.Xna.Framework
             _components.ComponentAdded += Components_ComponentAdded;
             _components.ComponentRemoved += Components_ComponentRemoved;
 
-            sw.Stop();
-            ContentManager.addTime("Game.cs DoInitialize -> Part 2", sw.ElapsedMilliseconds);
 
         }
 

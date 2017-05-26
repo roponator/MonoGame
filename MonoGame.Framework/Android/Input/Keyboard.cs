@@ -74,16 +74,12 @@ namespace Microsoft.Xna.Framework.Input
 
         private static IDictionary<Keycode, Keys> LoadKeyMap()
         {
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-          
+
             // create a map for every Keycode and default it to none so that every possible key is mapped
             var maps = Enum.GetValues(typeof (Keycode))
                 .Cast<Keycode>()
                 .ToDictionary(key => key, key => Keys.None);
 
-            sw.Stop();
-            Content.ContentManager.addTime("LoadKeyMap", sw.ElapsedMilliseconds);
 
 
             // then update it with the actual mappings

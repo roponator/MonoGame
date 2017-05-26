@@ -26,7 +26,7 @@ using GetParamName = OpenGL.GetPName;
 namespace Microsoft.Xna.Framework.Graphics
 {
 
-    internal partial class GraphicsCapabilities
+    public partial class GraphicsCapabilities
     {
         /// <summary>
         /// True, if GL_ARB_framebuffer_object is supported; false otherwise.
