@@ -17,7 +17,7 @@ namespace Microsoft.Xna.Framework.Graphics
         private static void PlatformInitializeAdapters(out ReadOnlyCollection<GraphicsAdapter> adapters)
         {
             var factory = new SharpDX.DXGI.Factory1();
-
+           
             var adapterCount = factory.GetAdapterCount();
             var adapterList = new List<GraphicsAdapter>(adapterCount);
 
@@ -26,7 +26,7 @@ namespace Microsoft.Xna.Framework.Graphics
             for (var i = 0; i < adapterCount; i++)
             {
                 var device = factory.GetAdapter1(i);
-
+            
                 if (device != null)
                 {
                     string desc = "";
@@ -193,7 +193,12 @@ namespace Microsoft.Xna.Framework.Graphics
         {
             if (UseReferenceDevice)
                 return true;
-            throw new Exception("die no profile");
+
+            if (_adapter == null)
+            {
+                Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.DirectX.cs PlatformIsProfileSupported: null adapter"); 
+            }
+
             switch (graphicsProfile)
             {
                 case GraphicsProfile.Reach:

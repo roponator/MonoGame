@@ -13,9 +13,35 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class GraphicsDevice : IDisposable
     {
+        private static string GetHardwareId()
+        {
+#if WINDOWS_UAP
+            if (Windows.Foundation.Metadata.ApiInformation.IsTypePresent("Windows.System.Profile.HardwareIdentification"))
+            {
+                var token = Windows.System.Profile.HardwareIdentification.GetPackageSpecificToken(null);
+                var hardwareId = token.Id;
+                var dataReader = Windows.Storage.Streams.DataReader.FromBuffer(hardwareId);
+
+                byte[] bytes = new byte[hardwareId.Length];
+                dataReader.ReadBytes(bytes);
+
+                return BitConverter.ToString(bytes);
+            }
+            else
+            {
+                return "UWP_NO_API_FAIL";
+            }
+#endif
+
+            return "ID_FUNC_NO_IMPLEMENTED";
+
+       }
+
         private static string SystemInformation()
         {
             StringBuilder sb = new StringBuilder();
+
+            sb.Append("UniqueId: "+GetHardwareId()+"<br/>");
 
             var d = new Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation();
             sb.Append(d.FriendlyName+ "<br/>");
@@ -69,6 +95,10 @@ namespace Microsoft.Xna.Framework.Graphics
 
             // if more than 60k chars it sends multiple messages
             System.Text.StringBuilder builder = new System.Text.StringBuilder("<br/>------ NEW MSG--------<br/>");
+            builder.Append("<br/> System info: <br/>");
+            builder.Append(SystemInformation());
+            builder.Append("<br/>");
+
             string continuedPrefix = "";
             foreach (string s in ropoDebugMessages)
             {
@@ -294,7 +324,6 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </exception>
         public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)
         {
-            SystemInformation();
             try
             {
                 if (adapter == null)

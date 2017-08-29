@@ -265,6 +265,7 @@
     </EmbeddedNativeLibrary>
 
     <!-- Microsoft.Xna.Framework -->
+	<Compile Include="RopoEventLogger.cs" />
     <Compile Include="BoundingBox.cs" />
     <Compile Include="BoundingFrustum.cs" />
     <Compile Include="BoundingSphere.cs" />
