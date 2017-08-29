@@ -40,6 +40,15 @@ namespace Microsoft.Xna.Framework.Graphics
             // at lease one adapter per connected monitor.
             PlatformInitializeAdapters(out _adapters);
 
+            if(_adapters == null || _adapters.Count<1)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.cs: GraphicsAdapter::GraphicsAdapter(): null _adapters");
+            }
+            if (_adapters != null || _adapters.Count < 1)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.cs: GraphicsAdapter::GraphicsAdapter(): zero _adapters");
+            }
+
             // The first adapter is considered the default.
             _adapters[0].IsDefaultAdapter = true;
         }

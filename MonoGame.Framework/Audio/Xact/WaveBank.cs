@@ -8,15 +8,10 @@ using System.IO;
 namespace Microsoft.Xna.Framework.Audio
 {
     /// <summary>Represents a collection of wave files.</summary>
-    public partial class WaveBank : IDisposable
+    public class WaveBank : IDisposable
     {
         private readonly SoundEffect[] _sounds;
-        private readonly StreamInfo[] _streams;
-        private readonly string _bankName;
-        private readonly string _waveBankFileName;
-        private readonly bool _streaming;
-        private readonly int _offset;
-        private readonly int _packetSize;
+        private string _bankName;
 
         struct Segment
         {
@@ -49,20 +44,7 @@ namespace Microsoft.Xna.Framework.Audio
             public int    CompactFormat;                        // Format data for compact bank
             public int    BuildTime;                            // Build timestamp
         }
-
-        struct StreamInfo
-        {
-            public int FileOffset;
-            public int FileLength;
-            public MiniFormatTag Codec;
-            public int Channels;
-            public int Rate;
-            public int Alignment;
-            public int LoopStart;
-            public int LoopLength;
-
-        }
-
+        
         private const int Flag_EntryNames = 0x00010000; // Bank includes entry names
         private const int Flag_Compact = 0x00020000; // Bank uses compact format
         private const int Flag_SyncDisabled = 0x00040000; // Bank is disabled for audition sync
@@ -81,29 +63,11 @@ namespace Microsoft.Xna.Framework.Audio
         /// <param name="nonStreamingWaveBankFilename">Path to the .xwb file to load.</param>
         /// <remarks>This constructor immediately loads all wave data into memory at once.</remarks>
         public WaveBank(AudioEngine audioEngine, string nonStreamingWaveBankFilename)
-            : this(audioEngine, nonStreamingWaveBankFilename, false, 0, 0)
-        {
-        }
-
-        private WaveBank(AudioEngine audioEngine, string waveBankFilename, bool streaming, int offset, int packetsize)
         {
             if (audioEngine == null)
                 throw new ArgumentNullException("audioEngine");
-            if (string.IsNullOrEmpty(waveBankFilename))
+            if (string.IsNullOrEmpty(nonStreamingWaveBankFilename))
                 throw new ArgumentNullException("nonStreamingWaveBankFilename");
-
-            // Is this a streaming wavebank?
-            if (streaming)
-            {
-                if (offset != 0)
-                    throw new ArgumentException("We only support a zero offset in streaming banks.", "offset");
-                if (packetsize < 2)
-                    throw new ArgumentException("The packet size must be greater than 2.", "packetsize");
-
-                _streaming = true;
-                _offset = offset;
-                _packetSize = packetsize;
-            }
 
             //XWB PARSING
             //Adapted from MonoXNA
@@ -124,9 +88,7 @@ namespace Microsoft.Xna.Framework.Audio
 
             int wavebank_offset = 0;
 
-            _waveBankFileName = waveBankFilename;
-
-            BinaryReader reader = new BinaryReader(AudioEngine.OpenStream(waveBankFilename));
+            BinaryReader reader = new BinaryReader(AudioEngine.OpenStream(nonStreamingWaveBankFilename));
 
             reader.ReadBytes(4);
 
@@ -201,8 +163,6 @@ namespace Microsoft.Xna.Framework.Audio
             }
 
             _sounds = new SoundEffect[wavebankdata.EntryCount];
-            if (_streaming)
-                _streams = new StreamInfo[wavebankdata.EntryCount];
 
             for (int current_entry = 0; current_entry < wavebankdata.EntryCount; current_entry++)
             {
@@ -334,23 +294,7 @@ namespace Microsoft.Xna.Framework.Audio
                     align = (wavebankentry.Format >> (2 + 3 + 18)) & ((1 << 8) - 1);
                     //bits = (wavebankentry.Format >> (2 + 3 + 18 + 8)) & ((1 << 1) - 1);
                 }
-
-                // If this is a streaming wavebank then don't load the data yet.
-                if (_streaming)
-                {
-                    _streams[current_entry] = new StreamInfo
-                    {
-                        FileOffset = wavebankentry.PlayRegion.Offset,
-                        FileLength = wavebankentry.PlayRegion.Length,
-                        Codec = codec,
-                        Channels = chans,
-                        Rate = rate,
-                        Alignment = align,
-                        LoopStart = wavebankentry.LoopRegion.Offset,
-                        LoopLength = wavebankentry.LoopRegion.Length,
-                    };
-                    continue;
-                }
+                
                 reader.BaseStream.Seek(wavebankentry.PlayRegion.Offset, SeekOrigin.Begin);
                 byte[] audiodata = reader.ReadBytes(wavebankentry.PlayRegion.Length);
 
@@ -362,7 +306,7 @@ namespace Microsoft.Xna.Framework.Audio
 
             IsPrepared = true;
         }
-
+        
         /// <param name="audioEngine">Instance of the AudioEngine to associate this wave bank with.</param>
         /// <param name="streamingWaveBankFilename">Path to the .xwb to stream from.</param>
         /// <param name="offset">DVD sector-aligned offset within the wave bank data file.</param>
@@ -373,24 +317,15 @@ namespace Microsoft.Xna.Framework.Audio
         /// <para>AudioEngine.Update() must be called at least once before using data from a streaming wave bank.</para>
         /// </remarks>
         public WaveBank(AudioEngine audioEngine, string streamingWaveBankFilename, int offset, short packetsize)
-            : this(audioEngine, streamingWaveBankFilename, true, offset, packetsize)
+            : this(audioEngine, streamingWaveBankFilename)
         {
+            if (offset != 0)
+                throw new NotImplementedException();
         }
 
-        internal SoundEffectInstance GetSoundEffectInstance(int trackIndex, out bool streaming)
+        internal SoundEffect GetSoundEffect(int trackIndex)
         {
-            if (_streaming)
-            {
-                streaming = true;
-                var stream = _streams[trackIndex];
-                return PlatformCreateStream(stream);
-            }
-            else
-            {
-                streaming = false;
-                var sound = _sounds[trackIndex];
-                return sound.GetPooledInstance(true);
-            }
+            return _sounds[trackIndex];
         }
 
         /// <summary>
@@ -431,7 +366,9 @@ namespace Microsoft.Xna.Framework.Audio
 
                 IsPrepared = false;
                 IsInUse = false;
-                EventHelpers.Raise(this, Disposing, EventArgs.Empty);
+
+                if (Disposing != null)
+                    Disposing(this, EventArgs.Empty);
             }
         }
     }

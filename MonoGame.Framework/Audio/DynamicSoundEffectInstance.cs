@@ -289,14 +289,12 @@ namespace Microsoft.Xna.Framework.Audio
             PlatformUpdateQueue();
 
             // Raise the event
-            var bufferNeededHandler = BufferNeeded;
-
-            if (bufferNeededHandler != null)
+            if (BufferNeeded != null)
             {
                 var eventCount = (_buffersNeeded < 3) ? _buffersNeeded : 3;
                 for (var i = 0; i < eventCount; i++)
                 {
-                    bufferNeededHandler(this, EventArgs.Empty);
+                    BufferNeeded(this, EventArgs.Empty);
                 }
             }
 

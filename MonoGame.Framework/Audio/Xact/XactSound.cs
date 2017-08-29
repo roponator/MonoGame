@@ -20,7 +20,6 @@ namespace Microsoft.Xna.Framework.Audio
         private readonly bool _useReverb;
 
         private SoundEffectInstance _wave;
-        private bool _streaming;
 
         private float _cueVolume = 1;
         private float _cuePitch = 0;
@@ -126,6 +125,7 @@ namespace Microsoft.Xna.Framework.Audio
         {
             _cueVolume = volume;
             var category = engine.Categories[_categoryID];
+            UpdateCategoryVolume(category._volume[0]);
 
             var curInstances = category.GetPlayingInstanceCount();
             if (curInstances >= category.maxInstances)
@@ -140,24 +140,17 @@ namespace Microsoft.Xna.Framework.Audio
                 }
             }
 
-            float finalVolume = _volume * _cueVolume * category._volume[0];
-            float finalPitch = _pitch + _cuePitch;
-            float finalMix = _useReverb ? _cueReverbMix : 0.0f;
-
             if (_complexSound) 
             {
                 foreach (XactClip clip in _soundClips)
-                {
-                    clip.UpdateState(finalVolume, finalPitch, finalMix, _cueFilterFrequency, _cueFilterQFactor);
                     clip.Play();
-                }
             } 
             else 
             {
                 if (_wave != null && _wave.State != SoundState.Stopped && _wave.IsLooped)
                     _wave.Stop();
                 else
-                    _wave = _soundBank.GetSoundEffectInstance(_waveBankIndex, _trackIndex, out _streaming);
+                    _wave = _soundBank.GetSoundEffectInstance(_waveBankIndex, _trackIndex);
 
                 if (_wave == null)
                 {
@@ -166,9 +159,9 @@ namespace Microsoft.Xna.Framework.Audio
                     return;
                 }
 
-                _wave.Pitch = finalPitch;
-                _wave.Volume = finalVolume;
-                _wave.PlatformSetReverbMix(finalMix);
+                _wave.Pitch = _pitch + _cuePitch;
+                _wave.Volume = _volume * _cueVolume * category._volume[0];
+                _wave.PlatformSetReverbMix(_useReverb ? _cueReverbMix : 0.0f);
                 _wave.Play();
             }
         }
@@ -183,11 +176,7 @@ namespace Microsoft.Xna.Framework.Audio
             else
             {
                 if (_wave != null && _wave.State == SoundState.Stopped)
-                {
-                    if (_streaming)
-                        _wave.Dispose();
                     _wave = null;
-                }
             }
         }
 
@@ -203,8 +192,6 @@ namespace Microsoft.Xna.Framework.Audio
                 if (_wave != null)
                 {
                     _wave.Stop();
-                    if (_streaming)
-                        _wave.Dispose();
                     _wave = null;
                 }
             }
@@ -222,8 +209,6 @@ namespace Microsoft.Xna.Framework.Audio
                 if (_wave != null)
                 {
                     _wave.Stop();
-                    if (_streaming)
-                        _wave.Dispose();
                     _wave = null;
                 }
             }
@@ -301,7 +286,6 @@ namespace Microsoft.Xna.Framework.Audio
             {
                 _wave.PlatformSetReverbMix(_useReverb ? _cueReverbMix : 0.0f);
                 _wave.Pitch = finalPitch;
-                _wave.Volume = finalVolume;
             }
         }
 

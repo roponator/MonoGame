@@ -71,11 +71,12 @@ namespace Microsoft.Xna.Framework.Media
                 if (_state != value)
                 {
                     _state = value;
+                    if (MediaStateChanged != null)
 #if WINDOWS_PHONE
-                    // Playing music using XNA, we shouldn't fire extra state changed events
-                    if (!playingInternal)
+                        // Playing music using XNA, we shouldn't fire extra state changed events
+                        if (!playingInternal)
 #endif
-                        EventHelpers.Raise(null, MediaStateChanged, EventArgs.Empty);
+                            MediaStateChanged(null, EventArgs.Empty);
                 }
             }
         }
@@ -135,8 +136,8 @@ namespace Microsoft.Xna.Framework.Media
             
             PlaySong(song, startPosition);
 
-            if (previousSong != song)
-                EventHelpers.Raise(null, ActiveSongChanged, EventArgs.Empty);
+            if (previousSong != song && ActiveSongChanged != null)
+                ActiveSongChanged.Invoke(null, EventArgs.Empty);
         }
 
 		public static void Play(SongCollection collection, int index = 0)
@@ -172,7 +173,12 @@ namespace Microsoft.Xna.Framework.Media
 				if (!IsRepeating)
 				{
 					Stop();
-					EventHelpers.Raise(null, ActiveSongChanged, EventArgs.Empty);
+
+					if (ActiveSongChanged != null)
+					{
+						ActiveSongChanged.Invoke(null, null);
+					}
+
 					return;
 				}
 			}
@@ -239,7 +245,10 @@ namespace Microsoft.Xna.Framework.Media
             if (nextSong != null)
                 PlaySong(nextSong, null);
 
-            EventHelpers.Raise(null, ActiveSongChanged, EventArgs.Empty);
+            if (ActiveSongChanged != null)
+            {
+                ActiveSongChanged.Invoke(null, null);
+            }
 		}
     }
 }

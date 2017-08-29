@@ -175,22 +175,22 @@ namespace Microsoft.Xna.Framework
 
         protected void OnDeviceDisposing(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceDisposing, e);
+            Raise(DeviceDisposing, e);
         }
 
         protected void OnDeviceResetting(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceResetting, e);
+            Raise(DeviceResetting, e);
         }
 
         internal void OnDeviceReset(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceReset, e);
+            Raise(DeviceReset, e);
         }
 
         internal void OnDeviceCreated(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceCreated, e);
+            Raise(DeviceCreated, e);
         }
 
         /// <summary>
@@ -202,19 +202,25 @@ namespace Microsoft.Xna.Framework
         {
             var gdi = new GraphicsDeviceInformation();
             PrepareGraphicsDeviceInformation(gdi);
-            var preparingDeviceSettingsHandler = PreparingDeviceSettings;
 
-            if (preparingDeviceSettingsHandler != null)
+            if (PreparingDeviceSettings != null)
             {
                 // this allows users to overwrite settings through the argument
                 var args = new PreparingDeviceSettingsEventArgs(gdi);
-                preparingDeviceSettingsHandler(this, args);
+                PreparingDeviceSettings(this, args);
 
                 if (gdi.PresentationParameters == null || gdi.Adapter == null)
                     throw new NullReferenceException("Members should not be set to null in PreparingDeviceSettingsEventArgs");
             }
 
             return gdi;
+        }
+
+        private void Raise<TEventArgs>(EventHandler<TEventArgs> handler, TEventArgs e)
+            where TEventArgs : EventArgs
+        {
+            if (handler != null)
+                handler(this, e);
         }
 
         #endregion
@@ -240,7 +246,8 @@ namespace Microsoft.Xna.Framework
                     }
                 }
                 _disposed = true;
-                EventHelpers.Raise(this, Disposed, EventArgs.Empty);
+                if (Disposed != null)
+                    Disposed(this, EventArgs.Empty);
             }
         }
 
@@ -325,7 +332,10 @@ namespace Microsoft.Xna.Framework
         private void DisposeGraphicsDevice()
         {
             _graphicsDevice.Dispose();
-            EventHelpers.Raise(this, DeviceDisposing, EventArgs.Empty);
+
+            if (DeviceDisposing != null)
+                DeviceDisposing(this, EventArgs.Empty);
+
             _graphicsDevice = null;
         }
 

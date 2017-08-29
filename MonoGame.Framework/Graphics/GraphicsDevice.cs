@@ -7,12 +7,95 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Xna.Framework.Utilities;
-
+using System.Text;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class GraphicsDevice : IDisposable
     {
+        private static string SystemInformation()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            var d = new Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation();
+            sb.Append(d.FriendlyName+ "<br/>");
+            sb.Append(d.OperatingSystem + "<br/>");
+            sb.Append(d.SystemFirmwareVersion + "<br/>");
+            sb.Append(d.SystemHardwareVersion + "<br/>");
+            sb.Append(d.SystemManufacturer + "<br/>");
+            sb.Append(d.SystemProductName + "<br/>");
+
+            sb.Append(Windows.System.Profile.AnalyticsInfo.DeviceForm + "<br/>");
+            var ver = Windows.System.Profile.AnalyticsInfo.VersionInfo;
+            sb.Append(ver.DeviceFamily + ": " + ver.DeviceFamilyVersion + "<br/>");
+
+            /* var devAsync = Windows.Devices.Enumeration.DeviceInformation.FindAllAsync();
+             while(devAsync.Status != Windows.Foundation.AsyncStatus.Completed)
+             {
+
+             }
+
+             foreach(var dev in devAsync.GetResults())
+             {
+                 string idLower = dev.Id.ToLower();
+                 string nameLower = dev.Name.ToLower();
+
+                 if(idLower.Contains("amd") || idLower.Contains("nvidia") || idLower.Contains("radeon") || idLower.Contains("geforce") ||
+                     idLower.Contains("gforce") || idLower.Contains("intel") ||
+                     nameLower.Contains("amd") || nameLower.Contains("nvidia") || nameLower.Contains("radeon") || nameLower.Contains("geforce") ||
+                     nameLower.Contains("gforce") || nameLower.Contains("intel"))
+                 {
+                     sb.Append("<br/> Dev: " + idLower + ": " + nameLower + "<br/>");
+                 }
+
+             }*/
+
+            return sb.ToString();
+        }
+
+        private static List<String> ropoDebugMessages = new List<string>();
+        public static void RopoAddMessage(string msg)
+        {
+            ropoDebugMessages.Add(msg+ "<br/>");
+        }
+        public static void RopoAddMessageAndSend(string msg, Exception e)
+        {
+            ropoDebugMessages.Add(msg + "<br/> EXCPECTION <br/> : " + e.ToString());
+            RopoSendMessages();
+        }
+        public static void RopoSendMessages()
+        {
+            string tag = "blackjack graphics 2";
+
+            // if more than 60k chars it sends multiple messages
+            System.Text.StringBuilder builder = new System.Text.StringBuilder("<br/>------ NEW MSG--------<br/>");
+            string continuedPrefix = "";
+            foreach (string s in ropoDebugMessages)
+            {
+                int currentLen = builder.Length;
+
+                // if msg would be more than backend limit we make another message
+                if ((s.Length + currentLen) > 59000)
+                {
+                    if(continuedPrefix.Length<1)
+                    {
+                        continuedPrefix = "[SPLIT MSG] ";
+                    }
+                                    
+                    RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, continuedPrefix + builder.ToString());
+                    continuedPrefix = "[CONT MSG] ";
+                    builder.Clear();
+                }
+
+                builder.Append(s);
+            }
+
+            builder.Append(continuedPrefix);
+            RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, builder.ToString());
+
+            ropoDebugMessages.Clear();
+        }
+
         private Viewport _viewport;
 
         private bool _isDisposed;
@@ -114,12 +197,12 @@ namespace Microsoft.Xna.Framework.Graphics
         // collected by holding a strong reference to it in this list.
         private readonly List<WeakReference> _resources = new List<WeakReference>();
 
-		// TODO Graphics Device events need implementing
-		public event EventHandler<EventArgs> DeviceLost;
-		public event EventHandler<EventArgs> DeviceReset;
-		public event EventHandler<EventArgs> DeviceResetting;
-		public event EventHandler<ResourceCreatedEventArgs> ResourceCreated;
-		public event EventHandler<ResourceDestroyedEventArgs> ResourceDestroyed;
+        // TODO Graphics Device events need implementing
+        public event EventHandler<EventArgs> DeviceLost;
+        public event EventHandler<EventArgs> DeviceReset;
+        public event EventHandler<EventArgs> DeviceResetting;
+        public event EventHandler<ResourceCreatedEventArgs> ResourceCreated;
+        public event EventHandler<ResourceDestroyedEventArgs> ResourceDestroyed;
         public event EventHandler<EventArgs> Disposing;
 
         internal event EventHandler<EventArgs> PresentationChanged;
@@ -136,13 +219,15 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-		public bool IsContentLost {
-			get {
-				// We will just return IsDisposed for now
-				// as that is the only case I can see for now
-				return IsDisposed;
-			}
-		}
+        public bool IsContentLost
+        {
+            get
+            {
+                // We will just return IsDisposed for now
+                // as that is the only case I can see for now
+                return IsDisposed;
+            }
+        }
 
         internal bool IsRenderTargetBound
         {
@@ -182,13 +267,20 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         internal GraphicsDevice()
-		{
-            PresentationParameters = new PresentationParameters();
-            PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
-            Setup();
-            GraphicsCapabilities = new GraphicsCapabilities();
-            GraphicsCapabilities.Initialize(this);
-            Initialize();
+        {
+            try
+            {
+                PresentationParameters = new PresentationParameters();
+                PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
+                Setup();
+                GraphicsCapabilities = new GraphicsCapabilities();
+                GraphicsCapabilities.Initialize(this);
+                Initialize();
+            }
+            catch (Exception e)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessageAndSend("GraphicsDevice.cs #internal GraphicsDevice()# Exception", e);
+            }
         }
 
         /// <summary>
@@ -202,19 +294,28 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </exception>
         public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)
         {
-            if (adapter == null)
-                throw new ArgumentNullException("adapter");
-            if (!adapter.IsProfileSupported(graphicsProfile))
-                throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
-            if (presentationParameters == null)
-                throw new ArgumentNullException("presentationParameters");
-            Adapter = adapter;
-            PresentationParameters = presentationParameters;
-            _graphicsProfile = graphicsProfile;
-            Setup();
-            GraphicsCapabilities = new GraphicsCapabilities();
-            GraphicsCapabilities.Initialize(this);
-            Initialize();
+            SystemInformation();
+            try
+            {
+                if (adapter == null)
+                    throw new ArgumentNullException("adapter");
+                if (!adapter.IsProfileSupported(graphicsProfile))
+                    throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
+                if (presentationParameters == null)
+                    throw new ArgumentNullException("presentationParameters");
+                Adapter = adapter;
+                PresentationParameters = presentationParameters;
+                _graphicsProfile = graphicsProfile;
+                Setup();
+                GraphicsCapabilities = new GraphicsCapabilities();
+                GraphicsCapabilities.Initialize(this);
+                Initialize();
+            }
+            catch (Exception e)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessageAndSend("GraphicsDevice.cs #GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)# Exception", e);
+            }
+
         }
 
         private void Setup()
@@ -230,9 +331,9 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
 
             // Initialize the main viewport
-            _viewport = new Viewport (0, 0,
-			                         DisplayMode.Width, DisplayMode.Height);
-			_viewport.MaxDepth = 1.0f;
+            _viewport = new Viewport(0, 0,
+                                     DisplayMode.Width, DisplayMode.Height);
+            _viewport.MaxDepth = 1.0f;
 
             PlatformSetup();
 
@@ -388,8 +489,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
         public BlendState BlendState
         {
-			get { return _blendState; }
-			set
+            get { return _blendState; }
+            set
             {
                 if (value == null)
                     throw new ArgumentNullException("value");
@@ -398,7 +499,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 if (_blendState == value)
                     return;
 
-				_blendState = value;
+                _blendState = value;
 
                 // Static state properties never actually get bound;
                 // instead we use our GraphicsDevice-specific version of them.
@@ -422,7 +523,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _blendStateDirty = true;
             }
-		}
+        }
 
         public DepthStencilState DepthStencilState
         {
@@ -500,8 +601,8 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-		public void Clear(ClearOptions options, Vector4 color, float depth, int stencil)
-		{
+        public void Clear(ClearOptions options, Vector4 color, float depth, int stencil)
+        {
             PlatformClear(options, color, depth, stencil);
 
             unchecked
@@ -541,7 +642,9 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
 
                 _isDisposed = true;
-                EventHelpers.Raise(this, Disposing, EventArgs.Empty);
+
+                if (Disposing != null)
+                    Disposing(this, EventArgs.Empty);
             }
         }
 
@@ -583,13 +686,17 @@ namespace Microsoft.Xna.Framework.Graphics
         public void Reset()
         {
             PlatformValidatePresentationParameters(PresentationParameters);
-            EventHelpers.Raise(this, DeviceResetting, EventArgs.Empty);
+
+            if (DeviceResetting != null)
+                DeviceResetting(this, EventArgs.Empty);
 
             // Update the back buffer.
             OnPresentationChanged();
-            
-            EventHelpers.Raise(this, PresentationChanged, EventArgs.Empty);
-            EventHelpers.Raise(this, DeviceReset, EventArgs.Empty);
+
+            if (PresentationChanged != null)
+                PresentationChanged(this, EventArgs.Empty);
+            if (DeviceReset != null)
+                DeviceReset(this, EventArgs.Empty);
         }
 
         public void Reset(PresentationParameters presentationParameters)
@@ -607,7 +714,8 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </summary>
         internal void OnDeviceResetting()
         {
-            EventHelpers.Raise(this, DeviceResetting, EventArgs.Empty);
+            if (DeviceResetting != null)
+                DeviceResetting(this, EventArgs.Empty);
 
             lock (_resourcesLock)
             {
@@ -629,7 +737,8 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </summary>
         internal void OnDeviceReset()
         {
-            EventHelpers.Raise(this, DeviceReset, EventArgs.Empty);
+            if (DeviceReset != null)
+                DeviceReset(this, EventArgs.Empty);
         }
 
         public DisplayMode DisplayMode
@@ -699,18 +808,18 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-		public void SetRenderTarget(RenderTarget2D renderTarget)
-		{
-			if (renderTarget == null)
-		    {
+        public void SetRenderTarget(RenderTarget2D renderTarget)
+        {
+            if (renderTarget == null)
+            {
                 SetRenderTargets(null);
-		    }
-			else
-			{
-				_tempRenderTargetBinding[0] = new RenderTargetBinding(renderTarget);
-				SetRenderTargets(_tempRenderTargetBinding);
-			}
-		}
+            }
+            else
+            {
+                _tempRenderTargetBinding[0] = new RenderTargetBinding(renderTarget);
+                SetRenderTargets(_tempRenderTargetBinding);
+            }
+        }
 
         public void SetRenderTarget(RenderTargetCube renderTarget, CubeMapFace cubeMapFace)
         {
@@ -725,8 +834,8 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-		public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
-		{
+        public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
+        {
             // Avoid having to check for null and zero length.
             var renderTargetCount = 0;
             if (renderTargets != null)
@@ -795,8 +904,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 renderTargetWidth = PresentationParameters.BackBufferWidth;
                 renderTargetHeight = PresentationParameters.BackBufferHeight;
             }
-			else
-			{
+            else
+            {
                 // Copy the new bindings.
                 Array.Copy(renderTargets, _currentRenderTargetBindings, renderTargets.Length);
                 _currentRenderTargetCount = renderTargets.Length;
@@ -823,13 +932,13 @@ namespace Microsoft.Xna.Framework.Graphics
                 Clear(DiscardColor);
         }
 
-		public RenderTargetBinding[] GetRenderTargets()
-		{
+        public RenderTargetBinding[] GetRenderTargets()
+        {
             // Return a correctly sized copy our internal array.
             var bindings = new RenderTargetBinding[_currentRenderTargetCount];
             Array.Copy(_currentRenderTargetBindings, bindings, _currentRenderTargetCount);
             return bindings;
-		}
+        }
 
         public void GetRenderTargets(RenderTargetBinding[] outTargets)
         {
@@ -1053,7 +1162,7 @@ namespace Microsoft.Xna.Framework.Graphics
             unchecked
             {
                 _graphicsMetrics._drawCount++;
-                _graphicsMetrics._primitiveCount +=  primitiveCount;
+                _graphicsMetrics._primitiveCount += primitiveCount;
             }
         }
 
@@ -1133,7 +1242,7 @@ namespace Microsoft.Xna.Framework.Graphics
             unchecked
             {
                 _graphicsMetrics._drawCount++;
-                _graphicsMetrics._primitiveCount +=  primitiveCount;
+                _graphicsMetrics._primitiveCount += primitiveCount;
             }
         }
 
@@ -1209,11 +1318,11 @@ namespace Microsoft.Xna.Framework.Graphics
                 throw new ArgumentOutOfRangeException("vertexDeclaration", "Vertex stride of vertexDeclaration should be at least as big as the stride of the actual vertices.");
 
             PlatformDrawUserIndexedPrimitives<T>(primitiveType, vertexData, vertexOffset, numVertices, indexData, indexOffset, primitiveCount, vertexDeclaration);
-            
+
             unchecked
             {
                 _graphicsMetrics._drawCount++;
-                _graphicsMetrics._primitiveCount +=  primitiveCount;
+                _graphicsMetrics._primitiveCount += primitiveCount;
             }
         }
 

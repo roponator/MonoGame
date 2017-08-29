@@ -116,6 +116,8 @@ namespace Microsoft.Xna.Framework.Audio
                     stream.Seek(complexCuesOffset, SeekOrigin.Begin);
                     for (int i = 0; i < numComplexCues; i++)
                     {
+                        //Cue cue;
+
                         byte flags = reader.ReadByte();
                         if (((flags >> 2) & 1) != 0)
                         {
@@ -216,7 +218,7 @@ namespace Microsoft.Xna.Framework.Audio
             }
         }
 
-        internal SoundEffectInstance GetSoundEffectInstance(int waveBankIndex, int trackIndex, out bool streaming)
+        internal SoundEffectInstance GetSoundEffectInstance(int waveBankIndex, int trackIndex)
         {
             var waveBank = _waveBanks[waveBankIndex];
 
@@ -229,7 +231,8 @@ namespace Microsoft.Xna.Framework.Audio
                 _waveBanks[waveBankIndex] = waveBank;                
             }
 
-            return waveBank.GetSoundEffectInstance(trackIndex, out streaming);
+            var sound = waveBank.GetSoundEffect(trackIndex);
+            return sound.GetPooledInstance(true);
         }
         
         /// <summary>
@@ -346,8 +349,13 @@ namespace Microsoft.Xna.Framework.Audio
 
             if (disposing)
             {
+                //foreach (var cue in _cues.Values)
+                //    cue.Dispose();
+
                 IsInUse = false;
-                EventHelpers.Raise(this, Disposing, EventArgs.Empty);
+
+                if (Disposing != null)
+                    Disposing(this, EventArgs.Empty);
             }
         }
     }

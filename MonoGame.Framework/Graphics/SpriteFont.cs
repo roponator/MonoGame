@@ -34,7 +34,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			public int GetHashCode(char b)
 			{
-				return (b);
+				return (b | (b << 16));
 			}
 
 			static public readonly CharComparer Default = new CharComparer();

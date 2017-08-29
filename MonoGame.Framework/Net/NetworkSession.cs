@@ -803,21 +803,30 @@ namespace Microsoft.Xna.Framework.Net
 			case NetworkSessionState.Ended:
 				
 				ResetReady();
-
-                // Have to find an example of how this is used so that I can figure out how to pass
-                // the EndReason
-                EventHelpers.Raise(this, SessionEnded, new NetworkSessionEndedEventArgs(NetworkSessionEndReason.HostEndedSession));
+				
+				if (SessionEnded != null) {
+					// Have to find an example of how this is used so that I can figure out how to pass
+					//  the EndReason
+					SessionEnded(this, new NetworkSessionEndedEventArgs(NetworkSessionEndReason.HostEndedSession));
+					
+				}
 				break;
 			case NetworkSessionState.Playing:
 				
-				EventHelpers.Raise(this, GameStarted, new GameStartedEventArgs());
+				if (GameStarted != null) {
+					GameStarted(this, new GameStartedEventArgs());
+				}
 				break;
 			}
 			
 			// if changing from playing to lobby
 			if (command.NewState == NetworkSessionState.Lobby && command.OldState == NetworkSessionState.Playing) {
+				
 				ResetReady();
-				EventHelpers.Raise(this, GameEnded, new GameEndedEventArgs());
+				
+				if (GameEnded != null) {
+					GameEnded(this, new GameEndedEventArgs());
+				}
 			}
 		}
 		
@@ -855,7 +864,9 @@ namespace Microsoft.Xna.Framework.Net
 			gamer.Machine.Gamers.AddGamer(gamer);
 			//gamer.IsReady = true;
 			
-			EventHelpers.Raise(this, GamerJoined, new GamerJoinedEventArgs(gamer));
+			if (GamerJoined != null) {
+				GamerJoined(this, new GamerJoinedEventArgs(gamer));
+			}
 			
 			if (networkPeer !=  null && (command.State & GamerStates.Local) == 0) {
 				
@@ -879,7 +890,10 @@ namespace Microsoft.Xna.Framework.Net
 					gamer = _remoteGamers[x];
 					_remoteGamers.RemoveGamer(gamer);
 					_allGamers.RemoveGamer(gamer);
-					EventHelpers.Raise(this, GamerLeft, new GamerLeftEventArgs(gamer));
+				
+					if (GamerLeft != null) {
+						GamerLeft(this, new GamerLeftEventArgs(gamer));
+					}
 				}
 				
 			}

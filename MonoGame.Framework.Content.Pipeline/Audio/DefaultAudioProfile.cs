@@ -278,18 +278,15 @@ namespace Microsoft.Xna.Framework.Content.Pipeline.Audio
             return data;
         }
 
-        public static void WritePcmFile(AudioContent content, string saveToFile, int bitRate = 192000, int? sampeRate = null)
+        public static void WritePcmFile(AudioContent content, string saveToFile)
         {
             string ffmpegStdout, ffmpegStderr;
             var ffmpegExitCode = ExternalTool.Run(
                 "ffmpeg",
                 string.Format(
-                    "-y -i \"{0}\" -vn -c:a pcm_s16le -b:a {2} {3} -f:a wav -strict experimental \"{1}\"",
+                    "-y -i \"{0}\" -vn -c:a pcm_s16le -b:a 192000 -f:a wav -strict experimental \"{1}\"",
                     content.FileName,
-                    saveToFile,
-                    bitRate,
-                    sampeRate != null ? "-ar " + sampeRate.Value : ""
-                    ),
+                    saveToFile),
                 out ffmpegStdout,
                 out ffmpegStderr);
             if (ffmpegExitCode != 0)

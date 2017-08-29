@@ -118,28 +118,35 @@ namespace Microsoft.Xna.Framework
         //        GraphicsDevice to raise these events without help?
         internal void OnDeviceDisposing(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceDisposing, e);
+            Raise(DeviceDisposing, e);
         }
 
         // FIXME: Why does the GraphicsDeviceManager not know enough about the
         //        GraphicsDevice to raise these events without help?
         internal void OnDeviceResetting(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceResetting, e);
+            Raise(DeviceResetting, e);
         }
 
         // FIXME: Why does the GraphicsDeviceManager not know enough about the
         //        GraphicsDevice to raise these events without help?
         internal void OnDeviceReset(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceReset, e);
+            Raise(DeviceReset, e);
         }
 
         // FIXME: Why does the GraphicsDeviceManager not know enough about the
         //        GraphicsDevice to raise these events without help?
         internal void OnDeviceCreated(EventArgs e)
         {
-            EventHelpers.Raise(this, DeviceCreated, e);
+            Raise(DeviceCreated, e);
+        }
+
+        private void Raise<TEventArgs>(EventHandler<TEventArgs> handler, TEventArgs e)
+            where TEventArgs : EventArgs
+        {
+            if (handler != null)
+                handler(this, e);
         }
 
         #endregion
@@ -372,16 +379,14 @@ namespace Microsoft.Xna.Framework
 #endif // WINDOWS || WINRT
 
             // TODO: Implement multisampling (aka anti-alising) for all platforms!
-            var preparingDeviceSettingsHandler = PreparingDeviceSettings;
-
-            if (preparingDeviceSettingsHandler != null)
+            if (PreparingDeviceSettings != null)
             {
                 GraphicsDeviceInformation gdi = new GraphicsDeviceInformation();
                 gdi.GraphicsProfile = GraphicsProfile; // Microsoft defaults this to Reach.
                 gdi.Adapter = GraphicsAdapter.DefaultAdapter;
                 gdi.PresentationParameters = presentationParameters;
                 PreparingDeviceSettingsEventArgs pe = new PreparingDeviceSettingsEventArgs(gdi);
-                preparingDeviceSettingsHandler(this, pe);
+                PreparingDeviceSettings(this, pe);
                 presentationParameters = pe.GraphicsDeviceInformation.PresentationParameters;
                 GraphicsProfile = pe.GraphicsDeviceInformation.GraphicsProfile;
             }

@@ -50,8 +50,6 @@ namespace Microsoft.Xna.Framework.Media
             public WorkQueueId WorkQueueId { get; private set; }
         }
 
-        private Texture2D _videoCache;
-
         private void PlatformInitialize()
         {
             // The GUID is specified in a GuidAttribute attached to the class
@@ -59,7 +57,6 @@ namespace Microsoft.Xna.Framework.Media
 
             MediaManagerState.CheckStartup();
             MediaFactory.CreateMediaSession(null, out _session);
-
         }
 
         private Texture2D PlatformGetTexture()
@@ -71,12 +68,13 @@ namespace Microsoft.Xna.Framework.Media
             if (texData == null)
                 return null;
 
-            // NOTE: It's entirely possible that we could lose the d3d context and therefore lose this texture, but it's better than allocating a new texture each call!
-            _videoCache = _videoCache ?? new Texture2D(Game.Instance.GraphicsDevice, _currentVideo.Width, _currentVideo.Height, false, SurfaceFormat.Bgr32);
-
-            _videoCache.SetData(texData);
+            // TODO: This could likely be optimized if we held on to the SharpDX Surface/Texture data,
+            // and set it on an XNA one rather than constructing a new one every time this is called.
+            var retTex = new Texture2D(Game.Instance.GraphicsDevice, _currentVideo.Width, _currentVideo.Height, false, SurfaceFormat.Bgr32);
             
-            return _videoCache;
+            retTex.SetData(texData);
+            
+            return retTex;
         }
 
         private void PlatformGetState(ref MediaState result)
@@ -138,9 +136,6 @@ namespace Microsoft.Xna.Framework.Media
             // Start playing.
             var varStart = new Variant();
             _session.Start(null, varStart);
-
-            // Create cached texture
-            _videoCache = new Texture2D(Game.Instance.GraphicsDevice, _currentVideo.Width, _currentVideo.Height, false, SurfaceFormat.Bgr32);
         }
 
         private void PlatformResume()
@@ -158,10 +153,7 @@ namespace Microsoft.Xna.Framework.Media
                 _volumeController.Dispose();
                 _volumeController = null;
             }
-            if (_clock != null)
-            {
-                _clock.Dispose();
-            }
+            _clock.Dispose();
             _clock = null;
         }
 
@@ -208,10 +200,6 @@ namespace Microsoft.Xna.Framework.Media
 
         private void PlatformDispose(bool disposing)
         {
-            if (_videoCache != null)
-            {
-                _videoCache.Dispose();
-            }
         }
 
         private void OnTopologyReady()

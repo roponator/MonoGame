@@ -21,17 +21,88 @@ namespace Microsoft.Xna.Framework.Graphics
             var adapterCount = factory.GetAdapterCount();
             var adapterList = new List<GraphicsAdapter>(adapterCount);
 
+            Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("d3d GraphicsAdapter::PlatformInitializeAdapters: adapter count: " + adapterCount);
+
             for (var i = 0; i < adapterCount; i++)
             {
                 var device = factory.GetAdapter1(i);
 
+                if (device != null)
+                {
+                    string desc = "";
+                    if (device.Description.Description != null)
+                    {
+                        desc += "Description: " + device.Description.Description;
+                    }
+                    if (device.Description.Description != null)
+                    {
+                        desc += "Description1: " + device.Description1.Description;
+                    }
+                    Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("device: " + desc);
+                }
+                else
+                {
+                    Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("device: is null");
+                }
+
                 var monitorCount = device.GetOutputCount();
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("monitor count1: " + monitorCount);
+
                 for (var j = 0; j < monitorCount; j++)
                 {
                     var monitor = device.GetOutput(j);
 
-                    var adapter = CreateAdapter(device, monitor);
-                    adapterList.Add(adapter);
+                    if (monitor != null)
+                    {
+                        string desc = "";
+                        if (monitor.Description.DeviceName != null)
+                        {
+                            desc = monitor.Description.DeviceName + ", attached: " + monitor.Description.IsAttachedToDesktop +
+                                ", bounds: " + monitor.Description.DesktopBounds.Top+", "
+                                + monitor.Description.DesktopBounds.Left + ", "
+                                + monitor.Description.DesktopBounds.Bottom + ", "
+                                + monitor.Description.DesktopBounds.Right +
+                                ", rot: " + monitor.Description.Rotation.ToString();
+                        }
+                        Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("monitor: " + desc);
+                    }
+                    else
+                    {
+                        Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("monitor null");
+                    }
+
+                    try
+                    {
+                        var adapter = CreateAdapter(device, monitor);
+
+                        if (adapter != null)
+                        {
+                            int numDisplayModes = 0;
+                            adapter.SupportedDisplayModes.GetEnumerator().Reset(); // TODO POTENTIAL FIX???
+                            foreach (var dm in adapter.SupportedDisplayModes)
+                            {
+                                ++numDisplayModes;
+                            }
+                            adapter.SupportedDisplayModes.GetEnumerator().Reset();// TODO POTENTIAL FIX???
+                            string s = " DisplayMode: " + adapter.CurrentDisplayMode.ToString() +
+                                ", Description: " + adapter.Description + ", DeviceName: " + adapter.DeviceName +
+                                ", IsDefaultAdapter: " + adapter.IsDefaultAdapter + ", IsWideScreen: " + adapter.IsWideScreen +
+                                ", num supp disp modes: " + numDisplayModes;
+
+                            Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("CreateAdapter: adapter: " + s);
+                        }
+                        else
+                        {
+                            Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("CreateAdapter: adapter is null");
+                        }
+
+                        adapterList.Add(adapter);
+                    }
+                    catch (Exception e)
+                    {
+                        Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessageAndSend("CreateAdapter exception", e);
+                    }
+
 
                     monitor.Dispose();
                 }
@@ -50,12 +121,12 @@ namespace Microsoft.Xna.Framework.Graphics
         };
 
         private static GraphicsAdapter CreateAdapter(SharpDX.DXGI.Adapter1 device, SharpDX.DXGI.Output monitor)
-        {            
+        {
             var adapter = new GraphicsAdapter();
             adapter._adapter = device;
 
-            adapter.DeviceName = monitor.Description.DeviceName.TrimEnd(new char[] {'\0'});
-            adapter.Description = device.Description1.Description.TrimEnd(new char[] {'\0'});
+            adapter.DeviceName = monitor.Description.DeviceName.TrimEnd(new char[] { '\0' });
+            adapter.Description = device.Description1.Description.TrimEnd(new char[] { '\0' });
             adapter.DeviceId = device.Description1.DeviceId;
             adapter.Revision = device.Description1.Revision;
             adapter.VendorId = device.Description1.VendorId;
@@ -82,11 +153,12 @@ namespace Microsoft.Xna.Framework.Graphics
                 {
                     displayModes = monitor.GetDisplayModeList(formatTranslation.Key, 0);
                 }
-                catch (SharpDX.SharpDXException)
+                catch (SharpDX.SharpDXException e)
                 {
                     var mode = new DisplayMode(desktopWidth, desktopHeight, SurfaceFormat.Color);
                     modes.Add(mode);
                     adapter._currentDisplayMode = mode;
+                    Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.DirectX.cs CreateAdapter() EXCEPTION potential non-fatal: " + e.ToString() + e.StackTrace.ToString());
                     break;
                 }
 
@@ -119,10 +191,10 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private bool PlatformIsProfileSupported(GraphicsProfile graphicsProfile)
         {
-            if(UseReferenceDevice)
+            if (UseReferenceDevice)
                 return true;
-
-            switch(graphicsProfile)
+            throw new Exception("die no profile");
+            switch (graphicsProfile)
             {
                 case GraphicsProfile.Reach:
                     return SharpDX.Direct3D11.Device.IsSupportedFeatureLevel(_adapter, FeatureLevel.Level_9_1);
@@ -131,6 +203,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 default:
                     throw new InvalidOperationException();
             }
+
+          
         }
     }
 }

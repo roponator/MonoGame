@@ -39,7 +39,7 @@ namespace Microsoft.Xna.Framework
                 if (_viewState == value)
                     return;
 
-                EventHelpers.Raise(this, ViewStateChanged, new ViewStateChangedEventArgs(value));
+                Raise(ViewStateChanged, new ViewStateChangedEventArgs(value));
 
                 _viewState = value;
             }
