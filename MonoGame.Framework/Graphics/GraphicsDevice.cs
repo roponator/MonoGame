@@ -94,34 +94,41 @@ namespace Microsoft.Xna.Framework.Graphics
             string tag = "blackjack graphics 2";
 
             // if more than 60k chars it sends multiple messages
-            System.Text.StringBuilder builder = new System.Text.StringBuilder("<br/>------ NEW MSG--------<br/>");
+            System.Text.StringBuilder builder = new System.Text.StringBuilder();
             builder.Append("<br/> System info: <br/>");
             builder.Append(SystemInformation());
             builder.Append("<br/>");
 
-            string continuedPrefix = "";
-            foreach (string s in ropoDebugMessages)
+             foreach (string s in ropoDebugMessages)
             {
-                int currentLen = builder.Length;
-
-                // if msg would be more than backend limit we make another message
-                if ((s.Length + currentLen) > 59000)
-                {
-                    if(continuedPrefix.Length<1)
-                    {
-                        continuedPrefix = "[SPLIT MSG] ";
-                    }
-                                    
-                    RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, continuedPrefix + builder.ToString());
-                    continuedPrefix = "[CONT MSG] ";
-                    builder.Clear();
-                }
-
                 builder.Append(s);
             }
 
-            builder.Append(continuedPrefix);
-            RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, builder.ToString());
+             // either send in single batch or split
+            if (builder.Length < 59000)
+            {
+                RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, builder.ToString());
+            }
+            else
+            {
+                string s = builder.ToString();
+                const int maxNum = 59000;
+                int currentStart = 0;
+                string prefix = "[SPLIT MSG] ";
+                while(true)
+                {
+                    string sub = s.Substring(currentStart, maxNum);
+                    if(sub.Length<1)
+                    {
+                        break;
+                    }
+                    currentStart += maxNum;
+                    RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, prefix+ sub);
+                    prefix = "[CONT]";
+
+                    
+                }
+            }
 
             ropoDebugMessages.Clear();
         }

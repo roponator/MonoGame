@@ -198,7 +198,7 @@ namespace Microsoft.Xna.Framework.Graphics
             {
                 Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.DirectX.cs PlatformIsProfileSupported: null adapter"); 
             }
-
+    
             switch (graphicsProfile)
             {
                 case GraphicsProfile.Reach:
