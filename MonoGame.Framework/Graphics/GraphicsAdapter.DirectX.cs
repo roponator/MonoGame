@@ -122,8 +122,6 @@ namespace Microsoft.Xna.Framework.Graphics
             if (UseReferenceDevice)
                 return true;
 
-            throw new Exception("ropo test run");
-
             if (_adapter == null)
             {
                 Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.DirectX.cs PlatformIsProfileSupported: null adapter");
