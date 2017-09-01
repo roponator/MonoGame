@@ -119,10 +119,18 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private bool PlatformIsProfileSupported(GraphicsProfile graphicsProfile)
         {
-            if(UseReferenceDevice)
+            if (UseReferenceDevice)
                 return true;
 
-            switch(graphicsProfile)
+            throw new Exception("ropo test run");
+
+            if (_adapter == null)
+            {
+                Graphics.GraphicsDevice.RopoAddMessage("GraphicsAdapter.DirectX.cs PlatformIsProfileSupported: null adapter");
+                Graphics.GraphicsDevice.RopoSendMessages();
+            }
+
+            switch (graphicsProfile)
             {
                 case GraphicsProfile.Reach:
                     return SharpDX.Direct3D11.Device.IsSupportedFeatureLevel(_adapter, FeatureLevel.Level_9_1);
@@ -131,6 +139,8 @@ namespace Microsoft.Xna.Framework.Graphics
                 default:
                     throw new InvalidOperationException();
             }
+
+
         }
     }
 }

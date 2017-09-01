@@ -271,6 +271,7 @@
     <Compile Include="Color.cs" />
     <Compile Include="ContainmentType.cs" />
     <Compile Include="CurveContinuity.cs" />
+	<Compile Include="RopoEventLogger.cs" />
     <Compile Include="Curve.cs" />
     <Compile Include="CurveKeyCollection.cs" />
     <Compile Include="CurveKey.cs" />

@@ -7,12 +7,132 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Xna.Framework.Utilities;
-
+using System.Text;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class GraphicsDevice : IDisposable
     {
+        private static string GetHardwareId()
+        {
+#if WINDOWS_UAP
+            if (Windows.Foundation.Metadata.ApiInformation.IsTypePresent("Windows.System.Profile.HardwareIdentification"))
+            {
+                var token = Windows.System.Profile.HardwareIdentification.GetPackageSpecificToken(null);
+                var hardwareId = token.Id;
+                var dataReader = Windows.Storage.Streams.DataReader.FromBuffer(hardwareId);
+
+                byte[] bytes = new byte[hardwareId.Length];
+                dataReader.ReadBytes(bytes);
+
+                return BitConverter.ToString(bytes);
+            }
+            else
+            {
+                return "UWP_NO_API_FAIL";
+            }
+#endif
+
+            return "ID_FUNC_NO_IMPLEMENTED";
+
+        }
+
+        private static string SystemInformation()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append("UniqueId: " + GetHardwareId() + "<br/>");
+
+            var d = new Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation();
+            sb.Append(d.FriendlyName + "<br/>");
+            sb.Append(d.OperatingSystem + "<br/>");
+            sb.Append(d.SystemFirmwareVersion + "<br/>");
+            sb.Append(d.SystemHardwareVersion + "<br/>");
+            sb.Append(d.SystemManufacturer + "<br/>");
+            sb.Append(d.SystemProductName + "<br/>");
+
+            sb.Append(Windows.System.Profile.AnalyticsInfo.DeviceForm + "<br/>");
+            var ver = Windows.System.Profile.AnalyticsInfo.VersionInfo;
+            sb.Append(ver.DeviceFamily + ": " + ver.DeviceFamilyVersion + "<br/>");
+
+            /* var devAsync = Windows.Devices.Enumeration.DeviceInformation.FindAllAsync();
+             while(devAsync.Status != Windows.Foundation.AsyncStatus.Completed)
+             {
+
+             }
+
+             foreach(var dev in devAsync.GetResults())
+             {
+                 string idLower = dev.Id.ToLower();
+                 string nameLower = dev.Name.ToLower();
+
+                 if(idLower.Contains("amd") || idLower.Contains("nvidia") || idLower.Contains("radeon") || idLower.Contains("geforce") ||
+                     idLower.Contains("gforce") || idLower.Contains("intel") ||
+                     nameLower.Contains("amd") || nameLower.Contains("nvidia") || nameLower.Contains("radeon") || nameLower.Contains("geforce") ||
+                     nameLower.Contains("gforce") || nameLower.Contains("intel"))
+                 {
+                     sb.Append("<br/> Dev: " + idLower + ": " + nameLower + "<br/>");
+                 }
+
+             }*/
+
+            return sb.ToString();
+        }
+
+        private static List<String> ropoDebugMessages = new List<string>();
+        public static void RopoAddMessage(string msg)
+        {
+            ropoDebugMessages.Add(msg + "<br/>");
+        }
+        public static void RopoAddMessageAndSend(string msg, Exception e)
+        {
+            ropoDebugMessages.Add(msg + "<br/> EXCPECTION <br/> : " + e.ToString());
+            RopoSendMessages();
+        }
+        public static void RopoSendMessages()
+        {
+            string tag = "graphics bug 1";
+
+            // if more than 60k chars it sends multiple messages
+            System.Text.StringBuilder builder = new System.Text.StringBuilder();
+            builder.Append("<br/> System info: <br/>");
+            builder.Append(SystemInformation());
+            builder.Append("<br/>");
+
+            foreach (string s in ropoDebugMessages)
+            {
+                builder.Append(s);
+            }
+
+            // either send in single batch or split
+            if (builder.Length < 59000)
+            {
+                RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, builder.ToString());
+            }
+            else
+            {
+                string s = builder.ToString();
+                const int maxNum = 59000;
+                int currentStart = 0;
+                string prefix = "[SPLIT MSG] ";
+                while (true)
+                {
+                    string sub = s.Substring(currentStart, maxNum);
+                    if (sub.Length < 1)
+                    {
+                        break;
+                    }
+                    currentStart += maxNum;
+                    RopoMonogameEventLogger.SaladEventLogging.LogBlocking(tag, prefix + sub);
+                    prefix = "[CONT]";
+
+
+                }
+            }
+
+            ropoDebugMessages.Clear();
+        }
+
         private Viewport _viewport;
 
         private bool _isDisposed;
@@ -182,13 +302,20 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         internal GraphicsDevice()
-		{
-            PresentationParameters = new PresentationParameters();
-            PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
-            Setup();
-            GraphicsCapabilities = new GraphicsCapabilities();
-            GraphicsCapabilities.Initialize(this);
-            Initialize();
+        {
+            try
+            {
+                PresentationParameters = new PresentationParameters();
+                PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
+                Setup();
+                GraphicsCapabilities = new GraphicsCapabilities();
+                GraphicsCapabilities.Initialize(this);
+                Initialize();
+            }
+            catch (Exception e)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessageAndSend("GraphicsDevice.cs #internal GraphicsDevice()# Exception", e);
+            }
         }
 
         /// <summary>
@@ -202,19 +329,27 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </exception>
         public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)
         {
-            if (adapter == null)
-                throw new ArgumentNullException("adapter");
-            if (!adapter.IsProfileSupported(graphicsProfile))
-                throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
-            if (presentationParameters == null)
-                throw new ArgumentNullException("presentationParameters");
-            Adapter = adapter;
-            PresentationParameters = presentationParameters;
-            _graphicsProfile = graphicsProfile;
-            Setup();
-            GraphicsCapabilities = new GraphicsCapabilities();
-            GraphicsCapabilities.Initialize(this);
-            Initialize();
+            try
+            {
+                if (adapter == null)
+                    throw new ArgumentNullException("adapter");
+                if (!adapter.IsProfileSupported(graphicsProfile))
+                    throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
+                if (presentationParameters == null)
+                    throw new ArgumentNullException("presentationParameters");
+                Adapter = adapter;
+                PresentationParameters = presentationParameters;
+                _graphicsProfile = graphicsProfile;
+                Setup();
+                GraphicsCapabilities = new GraphicsCapabilities();
+                GraphicsCapabilities.Initialize(this);
+                Initialize();
+            }
+            catch (Exception e)
+            {
+                Microsoft.Xna.Framework.Graphics.GraphicsDevice.RopoAddMessageAndSend("GraphicsDevice.cs #GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)# Exception", e);
+            }
+
         }
 
         private void Setup()
