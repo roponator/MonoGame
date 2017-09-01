@@ -30,8 +30,8 @@ namespace RopoMonogameEventLogger
     */
     public class SaladEventLogging
     {
-        public static string GAME_NAME = "RopoEventLogger_NOT_SET";
-        public static string GAME_VERSION = "RopoEventLogger__NOT_SET";
+        public static string GAME_NAME = "NOT_PROPERLY_SET_DOMINOES_DELUXE_WIN8";
+        public static string GAME_VERSION = "FAIL_NOT_SET";
 
         public static void LogBlocking(string tag, string message)
         {
